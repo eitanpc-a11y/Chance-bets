@@ -28,63 +28,70 @@
 <!-- ══════════════ TAB 1 — DASHBOARD ══════════════ -->
 <div id="tab-dashboard" class="tab-pane active">
 
-  <div class="panel">
-    <div class="panel-title">
-      📦 מצב נתונים
-      <span id="data-quality-badge" class="data-quality dq-sim">טוען...</span>
-      <span id="data-count-badge" class="text-muted" style="margin-right:auto"></span>
-    </div>
-    <div id="data-status-msg" class="text-muted"></div>
-  </div>
-
-  <!-- הזנת תוצאה ידנית -->
-  <div class="panel" style="border-color: rgba(10,132,255,0.2); background: linear-gradient(135deg, rgba(10,132,255,0.04), rgba(94,92,230,0.04));">
-    <div class="panel-title">✏️ הזן תוצאה אמיתית מהגרלה</div>
-    <p class="text-muted mb-8" style="font-size:0.78rem">ראית את תוצאת ההגרלה בפיס? הכנס אותה כאן — הנתון יישמר מקומית ויסומן כ"אמיתי".</p>
-    <div class="manual-input-grid">
-      <div>
-        <div class="manual-suit-label" style="color:var(--spade-col)">♠ עלה</div>
-        <select id="manual-spade" class="input-field" style="text-align:center">
-          <option value="">—</option>
-          <option>7</option><option>8</option><option>9</option><option>10</option>
-          <option>J</option><option>Q</option><option>K</option><option>A</option>
-        </select>
-      </div>
-      <div>
-        <div class="manual-suit-label" style="color:var(--heart-col)">♥ לב</div>
-        <select id="manual-heart" class="input-field" style="text-align:center">
-          <option value="">—</option>
-          <option>7</option><option>8</option><option>9</option><option>10</option>
-          <option>J</option><option>Q</option><option>K</option><option>A</option>
-        </select>
-      </div>
-      <div>
-        <div class="manual-suit-label" style="color:var(--diamond-col)">♦ יהלום</div>
-        <select id="manual-diamond" class="input-field" style="text-align:center">
-          <option value="">—</option>
-          <option>7</option><option>8</option><option>9</option><option>10</option>
-          <option>J</option><option>Q</option><option>K</option><option>A</option>
-        </select>
-      </div>
-      <div>
-        <div class="manual-suit-label" style="color:var(--club-col)">♣ תלתן</div>
-        <select id="manual-club" class="input-field" style="text-align:center">
-          <option value="">—</option>
-          <option>7</option><option>8</option><option>9</option><option>10</option>
-          <option>J</option><option>Q</option><option>K</option><option>A</option>
-        </select>
-      </div>
-    </div>
-    <div class="flex-row mt-8">
-      <button class="btn btn-primary" id="add-manual-btn">+ הוסף הגרלה</button>
-      <span id="manual-feedback" class="text-muted"></span>
-      <button class="btn btn-secondary" style="margin-right:auto;font-size:0.72rem" id="export-btn">⬇ ייצא JSON</button>
+  <!-- Status row -->
+  <div class="panel" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="data-quality-badge" class="data-quality dq-empty">אין נתונים</span>
+      <span id="data-count-badge" class="text-muted"></span>
+      <span id="data-status-msg" class="text-muted" style="margin-right:auto"></span>
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-title">🔥 מפת חום — תדירות הופעות</div>
-    <!-- תיקון: ♠=עלה ♣=תלתן -->
+  <!-- HERO: Manual entry -->
+  <div class="entry-hero">
+    <div class="entry-hero-title">✏️ הזן תוצאת הגרלה</div>
+    <div class="entry-hero-sub">ראית את התוצאה בפיס? הזן אותה כאן — תיספר כנתון אמיתי</div>
+    <div class="entry-grid">
+      <div>
+        <div class="entry-suit-label">♠ עלה</div>
+        <select id="manual-spade" class="entry-select">
+          <option value="">—</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>J</option><option>Q</option><option>K</option><option>A</option>
+        </select>
+      </div>
+      <div>
+        <div class="entry-suit-label">♥ לב</div>
+        <select id="manual-heart" class="entry-select">
+          <option value="">—</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>J</option><option>Q</option><option>K</option><option>A</option>
+        </select>
+      </div>
+      <div>
+        <div class="entry-suit-label">♦ יהלום</div>
+        <select id="manual-diamond" class="entry-select">
+          <option value="">—</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>J</option><option>Q</option><option>K</option><option>A</option>
+        </select>
+      </div>
+      <div>
+        <div class="entry-suit-label">♣ תלתן</div>
+        <select id="manual-club" class="entry-select">
+          <option value="">—</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>J</option><option>Q</option><option>K</option><option>A</option>
+        </select>
+      </div>
+    </div>
+    <div class="entry-actions">
+      <button class="btn btn-white" id="add-manual-btn">+ הוסף הגרלה</button>
+      <button class="btn" style="background:rgba(255,255,255,0.15);color:#fff;font-size:0.75rem" id="export-btn">⬇ ייצא JSON</button>
+      <span id="manual-feedback" style="font-size:0.8rem;color:rgba(255,255,255,0.85);margin-right:auto"></span>
+    </div>
+  </div>
+
+  <!-- Heatmap (hidden when empty) -->
+  <div class="panel" id="heatmap-panel">
+    <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>🔥 מפת חום — תדירות הופעות</span>
+    </div>
+    <div id="heatmap-empty" class="empty-state" style="display:none">
+      <div class="empty-state-icon">📊</div>
+      <div class="empty-state-title">ממתין לנתונים</div>
+      <div class="empty-state-desc">הזן לפחות הגרלה אחת כדי לראות את מפת החום</div>
+    </div>
     <table class="heatmap-table" id="heatmap-table">
       <thead>
         <tr>
@@ -102,7 +109,7 @@
   <div class="panel">
     <div class="panel-title">
       📉 גרף תדירות — 50 הגרלות אחרונות
-      <select id="chart-suit-selector" class="input-field" style="width:auto;margin-right:auto">
+      <select id="chart-suit-selector" class="input-field" style="width:auto;margin-right:auto;font-size:0.78rem;padding:5px 10px">
         <option value="spade">♠ עלה</option>
         <option value="heart">♥ לב</option>
         <option value="diamond">♦ יהלום</option>
@@ -116,7 +123,9 @@
 
   <div class="panel">
     <div class="panel-title">🕐 50 הגרלות אחרונות</div>
-    <div id="history-log" class="history-log"></div>
+    <div id="history-log" class="history-log">
+      <div style="color:var(--t3);font-style:italic;padding:8px">אין הגרלות עדיין — הזן תוצאות בטופס למעלה</div>
+    </div>
   </div>
 </div>
 

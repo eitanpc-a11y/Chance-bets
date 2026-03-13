@@ -158,16 +158,12 @@ async function loadData() {
   try {
     const res = await fetch('data.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    raw = await res.json();
-    source = 'file';
+    const parsed = await res.json();
+    raw = Array.isArray(parsed) ? parsed : [];
+    source = raw.length > 0 ? 'file' : 'empty';
   } catch (e) {
-    console.warn('data.json לא נמצא — משתמש בנתוני דמו:', e.message);
-    // ייצר נתוני דמו מסומנים בבירור
-    for (let i = 0; i < 200; i++) {
-      raw.push({ date: new Date(Date.now() - i * 3600000).toISOString().replace('T', ' ').substring(0, 19),
-                 results: randDraw(), status: 'simulated' });
-    }
-    source = 'demo';
+    console.warn('data.json לא נמצא:', e.message);
+    source = 'empty';
   }
 
   // Merge manually entered draws (localStorage) with file draws
@@ -207,10 +203,10 @@ function updateDataQualityBadge(source) {
 
   countBadge.textContent = `${formatNum(total)} הגרלות`;
 
-  if (source === 'demo') {
-    badge.className = 'data-quality dq-sim';
-    badge.textContent = 'ממתין לנתונים';
-    msg.innerHTML = `<span style="color:var(--orange)">⚠️ data.json ריק.</span> הזן תוצאות אמיתיות ידנית בטופס למעלה, או הרץ את fetch_results.py מקומית.`;
+  if (source === 'empty' && total === 0) {
+    badge.className = 'data-quality dq-empty';
+    badge.textContent = 'אין נתונים';
+    msg.innerHTML = `הזן את תוצאת ההגרלה בטופס למטה — כל הגרלה שתוסיף תיספר כ<strong>נתון אמיתי</strong>.`;
     return;
   }
 
@@ -247,17 +243,17 @@ function renderHeatmap() {
       const expected = total / 8;
       const diff = n - expected;
 
-      // צבע: אדום = גבוה, כחול = נמוך
+      // צבע: אדום = גבוה, כחול = נמוך, ירוק = ממוצע
       let bg, fc;
       if (intensity > 0.65) {
-        bg = `rgba(231,83,83,${intensity * 0.75})`;
-        fc = intensity > 0.8 ? '#fff' : 'var(--text-1)';
+        bg = `rgba(255,59,48,${0.12 + intensity * 0.55})`;
+        fc = intensity > 0.82 ? '#fff' : '#7a1a15';
       } else if (intensity < 0.25 && total > 40) {
-        bg = `rgba(79,195,247,${(0.25 - intensity) * 1.5})`;
-        fc = 'var(--text-1)';
+        bg = `rgba(0,122,255,${(0.25 - intensity) * 1.3})`;
+        fc = '#003d80';
       } else {
-        bg = `rgba(255,255,255,${intensity * 0.15})`;
-        fc = 'var(--text-1)';
+        bg = intensity > 0 ? `rgba(52,199,89,${intensity * 0.22})` : 'transparent';
+        fc = 'var(--t1)';
       }
 
       const diffSign = diff >= 0 ? '+' : '';
@@ -298,18 +294,19 @@ function renderTrendChart(suit) {
           backgroundColor: CARDS.map(c => {
             const n = counts[suit][c];
             const exp = (allDraws.length || 1) / 8;
-            if (n > exp * 1.3) return 'rgba(231,83,83,0.7)';
-            if (n < exp * 0.7) return 'rgba(79,195,247,0.7)';
-            return isRed ? 'rgba(239,83,80,0.5)' : 'rgba(176,190,197,0.5)';
+            if (n > exp * 1.3) return isRed ? 'rgba(255,59,48,0.75)' : 'rgba(0,122,255,0.75)';
+            if (n < exp * 0.7 && allDraws.length > 40) return 'rgba(255,149,0,0.6)';
+            return isRed ? 'rgba(255,59,48,0.35)' : 'rgba(0,122,255,0.35)';
           }),
-          borderRadius: 5,
+          borderRadius: 6,
+          borderSkipped: false,
         },
         {
           label: 'ציפוי אחיד',
           data: Array(8).fill(expected),
           type: 'line',
-          borderColor: 'rgba(255,193,7,0.6)',
-          borderDash: [5, 5],
+          borderColor: 'rgba(88,86,214,0.5)',
+          borderDash: [4, 4],
           borderWidth: 1.5,
           pointRadius: 0,
           fill: false,
@@ -321,21 +318,20 @@ function renderTrendChart(suit) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#8a9ab8', font: { family: 'DM Mono' } } },
+        legend: { labels: { color: 'rgba(60,60,67,0.6)', font: { family: 'Inter' } } },
         tooltip: {
           callbacks: {
             footer: items => {
               if (items[0].datasetIndex === 1) return '';
               const n = items[0].raw;
-              const exp = expected.toFixed(1);
-              return `ציפוי: ${exp} | פער: ${(n - expected).toFixed(1)}`;
+              return `ציפוי: ${expected.toFixed(1)} | פער: ${(n - expected).toFixed(1)}`;
             }
           }
         }
       },
       scales: {
-        y: { beginAtZero: true, ticks: { color: '#8a9ab8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        x: { ticks: { color: '#8a9ab8' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        y: { beginAtZero: true, ticks: { color: 'rgba(60,60,67,0.45)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { ticks: { color: 'rgba(60,60,67,0.45)' }, grid: { color: 'rgba(0,0,0,0.04)' } }
       }
     }
   });
@@ -370,10 +366,10 @@ function renderDistChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#8a9ab8' } } },
+      plugins: { legend: { labels: { color: 'rgba(60,60,67,0.6)' } } },
       scales: {
-        y: { beginAtZero: true, ticks: { color: '#8a9ab8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        x: { ticks: { color: '#8a9ab8' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        y: { beginAtZero: true, ticks: { color: 'rgba(60,60,67,0.45)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { ticks: { color: 'rgba(60,60,67,0.45)' }, grid: { color: 'rgba(0,0,0,0.04)' } }
       }
     }
   });
