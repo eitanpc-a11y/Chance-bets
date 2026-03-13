@@ -1,13 +1,10 @@
-// הגדרות בסיסיות
 const suits = ['spade', 'heart', 'diamond', 'club'];
 const suitSymbols = { 'spade': '♠', 'heart': '♥', 'diamond': '♦', 'club': '♣' };
 const cards = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
-// משתנים גלובליים
+let historyDraws = []; 
 let realDataCounts = { 'spade': {}, 'heart': {}, 'diamond': {}, 'club': {} };
-let historyDraws = []; // מערך שישמור את סדר ההגרלות הכרונולוגי
-
-suits.forEach(s => cards.forEach(c => realDataCounts[s][c] = 0));
+let trendChartInstance = null; // משתנה לשמירת הגרף
 
 let balance = localStorage.getItem('chance_bankroll') ? parseInt(localStorage.getItem('chance_bankroll')) : 0;
 updateBalanceDisplay();
@@ -15,152 +12,143 @@ updateBalanceDisplay();
 window.openTab = function(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    
     document.getElementById(tabId).classList.add('active');
     event.currentTarget.classList.add('active');
 };
 
-// --- משיכת נתונים ובניית היסטוריה ---
 async function loadRealData() {
     try {
         const response = await fetch('data.json');
-        if (!response.ok) throw new Error("קובץ הנתונים לא נמצא, נייצר נתוני הדמיה מתקדמים.");
-        
+        if (!response.ok) throw new Error("קובץ הנתונים לא נמצא.");
         historyDraws = await response.json();
     } catch (error) {
-        console.warn(error.message);
-        // יצירת סדרת נתונים מדומה שתאפשר לאלגוריתם הסטטיסטי לעבוד
         historyDraws = [];
         for(let i=0; i<500; i++) {
             historyDraws.push({
-                results: {
-                    spade: cards[Math.floor(Math.random() * cards.length)],
-                    heart: cards[Math.floor(Math.random() * cards.length)],
-                    diamond: cards[Math.floor(Math.random() * cards.length)],
-                    club: cards[Math.floor(Math.random() * cards.length)]
-                }
+                results: { spade: cards[Math.floor(Math.random() * cards.length)], heart: cards[Math.floor(Math.random() * cards.length)], diamond: cards[Math.floor(Math.random() * cards.length)], club: cards[Math.floor(Math.random() * cards.length)] }
             });
         }
     }
 
-    // ספירת הנתונים עבור מפת החום הכללית
     suits.forEach(s => cards.forEach(c => realDataCounts[s][c] = 0));
     historyDraws.forEach(draw => {
         if(draw.results) {
             suits.forEach(suit => {
-                let card = draw.results[suit];
-                if(realDataCounts[suit][card] !== undefined) {
-                    realDataCounts[suit][card]++;
-                }
+                if(draw.results[suit] !== undefined) realDataCounts[suit][draw.results[suit]]++;
             });
         }
     });
 
     generateHeatmapUI();
-    updateAdvancedAgentRecommendations();
+    updateMarketIndicators();
+    drawChart('heart'); // ציור הגרף ההתחלתי
 }
 
-// 1. ציור מפת החום (כל הזמנים)
 function generateHeatmapUI() {
     const tbody = document.querySelector('#heatmap-table tbody');
     tbody.innerHTML = '';
-    
-    let maxCount = 0;
-    suits.forEach(s => cards.forEach(c => {
-        if(realDataCounts[s][c] > maxCount) maxCount = realDataCounts[s][c];
-    }));
-    
-    if(maxCount === 0) maxCount = 1;
+    let maxCount = Math.max(1, ...suits.flatMap(s => cards.map(c => realDataCounts[s][c])));
 
     cards.forEach(card => {
         let row = document.createElement('tr');
-        let cardCell = document.createElement('td');
-        cardCell.innerText = card;
-        row.appendChild(cardCell);
-
+        row.innerHTML = `<td>${card}</td>`;
         suits.forEach(suit => {
-            let cell = document.createElement('td');
             let count = realDataCounts[suit][card];
-            cell.innerText = count;
-            
             let intensity = count / maxCount;
-            cell.style.backgroundColor = `rgba(231, 76, 60, ${intensity * 0.8})`;
-            if(intensity > 0.5) cell.style.color = 'white';
-            
-            row.appendChild(cell);
+            let bgColor = `rgba(231, 76, 60, ${intensity * 0.8})`;
+            let textColor = intensity > 0.5 ? 'white' : 'black';
+            row.innerHTML += `<td style="background-color: ${bgColor}; color: ${textColor};">${count}</td>`;
         });
         tbody.appendChild(row);
     });
 }
 
-// 2. לוגיקת סוכן סטטיסטית מתקדמת
-function updateAdvancedAgentRecommendations() {
-    let hotRecommendation = {};
-    let delayRecommendation = {};
-    let delayStatsText = {};
+// --- אינדיקטורים של שוק ההון (RSI וממוצעים נעים) ---
+function updateMarketIndicators() {
+    let trendRecommendation = {};
+    let overboughtWarning = {}; // RSI גבוה
 
-    // חיתוך 50 ההגרלות האחרונות בלבד עבור בדיקת המומנטום
-    let recentDraws = historyDraws.slice(-50);
+    let shortTermWindow = historyDraws.slice(-10); // ממוצע נע לטווח קצר
+    let longTermWindow = historyDraws.slice(-50); // ממוצע נע לטווח ארוך
 
     suits.forEach(suit => {
-        // --- אלגוריתם 1: מומנטום (החם ביותר ב-50 האחרונות) ---
-        let recentCounts = {};
-        cards.forEach(c => recentCounts[c] = 0);
-        
-        recentDraws.forEach(draw => {
-            if(draw.results && draw.results[suit]) {
-                recentCounts[draw.results[suit]]++;
-            }
-        });
-        
-        // מציאת הקלף עם הספירה הגבוהה ביותר בחלון הזמן
-        let hotCard = cards.reduce((a, b) => recentCounts[a] > recentCounts[b] ? a : b);
-        hotRecommendation[suit] = hotCard;
+        let bestTrendCard = cards[0];
+        let maxTrendGap = -999;
+        let overboughtCard = "אין";
+        let maxRSI = 0;
 
-        // --- אלגוריתם 2: מדד השהיה (כמה הגרלות עברו מאז שהופיע) ---
-        let delays = {};
-        cards.forEach(c => delays[c] = 0);
-        
         cards.forEach(card => {
-            let delayCount = 0;
-            // לולאה שרצה אחורה מההגרלה האחרונה ביותר ועד הישנה ביותר
-            for (let i = historyDraws.length - 1; i >= 0; i--) {
-                if (historyDraws[i].results && historyDraws[i].results[suit] === card) {
-                    break; // מצאנו את ההופעה האחרונה, עוצרים את הספירה
-                }
-                delayCount++;
+            // חישוב ממוצעים נעים (תדירות)
+            let shortMA = shortTermWindow.filter(d => d.results && d.results[suit] === card).length / 10;
+            let longMA = longTermWindow.filter(d => d.results && d.results[suit] === card).length / 50;
+            let trendGap = shortMA - longMA;
+
+            if (trendGap > maxTrendGap) {
+                maxTrendGap = trendGap;
+                bestTrendCard = card;
             }
-            delays[card] = delayCount;
+
+            // חישוב מדד דמוי RSI (כוח יחסי) - האם הקלף יצא המון ביחס לאחרים לאחרונה?
+            let recentOccurrences = shortTermWindow.filter(d => d.results && d.results[suit] === card).length;
+            let rsiEquivalent = (recentOccurrences / 10) * 100; // סולם של 0-100
+            
+            if (rsiEquivalent >= 30 && rsiEquivalent > maxRSI) { // מעל 30% ב-10 הגרלות (כשבממוצע אמור להיות 12.5%) זה המון
+                maxRSI = rsiEquivalent;
+                overboughtCard = card;
+            }
         });
 
-        // מציאת הקלף עם ההשהיה הגדולה ביותר
-        let maxDelayCard = cards.reduce((a, b) => delays[a] > delays[b] ? a : b);
-        delayRecommendation[suit] = maxDelayCard;
-        delayStatsText[suit] = delays[maxDelayCard]; // שומר את מספר ההגרלות שעברו להצגה
+        trendRecommendation[suit] = bestTrendCard;
+        overboughtWarning[suit] = overboughtCard;
     });
 
-    // הרכבת הטקסט להצגה בממשק
-    let hotText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${hotRecommendation[s]} ${suitSymbols[s]}</span>`).join(' | ');
-    
-    // בטקסט של ההשהיה נוסיף בסוגריים כמה הגרלות הקלף הזה נעדר
-    let delayText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${delayRecommendation[s]} ${suitSymbols[s]} <span style="font-size:0.7em; color:gray;">(${delayStatsText[s]} נעדר)</span></span>`).join(' | ');
-    
-    document.getElementById('agent-hot').innerHTML = hotText;
-    document.getElementById('agent-delay').innerHTML = delayText;
+    document.getElementById('agent-trend').innerHTML = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${trendRecommendation[s]} ${suitSymbols[s]}</span>`).join(' | ');
+    document.getElementById('agent-rsi').innerHTML = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${overboughtWarning[s] !== "אין" ? overboughtWarning[s] : "--"} ${suitSymbols[s]}</span>`).join(' | ');
 
-    // שמירת ההמלצות בזיכרון למילוי בלחיצת כפתור
-    window.currentHotRecommendation = hotRecommendation;
-    window.currentDelayRecommendation = delayRecommendation;
+    window.currentTrendRecommendation = trendRecommendation;
 }
 
-// מפעילים את הכל בעליית הדף
+// --- ציור גרפים עם Chart.js ---
+function drawChart(selectedSuit) {
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    
+    // ספירת הופעות של כל קלף בסדרה הנבחרת ב-50 ההגרלות האחרונות
+    let recentDraws = historyDraws.slice(-50);
+    let chartData = cards.map(card => {
+        return recentDraws.filter(d => d.results && d.results[selectedSuit] === card).length;
+    });
+
+    let colors = selectedSuit === 'heart' || selectedSuit === 'diamond' ? 'rgba(231, 76, 60, 0.6)' : 'rgba(44, 62, 80, 0.6)';
+
+    if (trendChartInstance) trendChartInstance.destroy(); // מחיקת הגרף הישן
+
+    trendChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: cards,
+            datasets: [{
+                label: `תדירות קלפי ${suitSymbols[selectedSuit]} (50 הגרלות אחרונות)`,
+                data: chartData,
+                backgroundColor: colors,
+                borderColor: colors.replace('0.6', '1'),
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+}
+
+// מאזין לשינוי סדרה בגרף
+document.getElementById('chart-suit-selector').addEventListener('change', (e) => {
+    drawChart(e.target.value);
+});
+
 loadRealData();
 
-// 3. מחולל טפסים וכפתורי מילוי אוטומטי
+// מחוללים
 function renderCards(recommendationObj, borderColor) {
     const display = document.getElementById('generated-cards');
     display.innerHTML = '';
-    
     suits.forEach(suit => {
         let card = recommendationObj[suit];
         let color = (suit === 'heart' || suit === 'diamond') ? 'red' : 'black';
@@ -168,27 +156,17 @@ function renderCards(recommendationObj, borderColor) {
     });
 }
 
-document.getElementById('agent-fill-hot-btn').addEventListener('click', () => {
-    renderCards(window.currentHotRecommendation, '#27ae60'); // ירוק למומנטום
-});
-
-document.getElementById('agent-fill-delay-btn').addEventListener('click', () => {
-    renderCards(window.currentDelayRecommendation, '#8e44ad'); // סגול להשהיה
-});
-
+document.getElementById('agent-fill-trend-btn').addEventListener('click', () => renderCards(window.currentTrendRecommendation, '#27ae60'));
 document.getElementById('generate-btn').addEventListener('click', () => {
     let randomRec = {};
-    suits.forEach(suit => randomRec[suit] = cards[Math.floor(Math.random() * cards.length)]);
-    renderCards(randomRec, '#ddd'); // אפור לאקראי
+    suits.forEach(s => randomRec[s] = cards[Math.floor(Math.random() * cards.length)]);
+    renderCards(randomRec, '#ddd');
 });
 
-// 4. ניהול תקציב
+// תקציב וסימולטור
 document.getElementById('deposit-btn').addEventListener('click', () => {
     let amount = parseInt(document.getElementById('deposit-amount').value);
-    if(amount > 0) {
-        balance += amount;
-        saveBalance();
-    }
+    if(amount > 0) { balance += amount; saveBalance(); }
 });
 
 function updateBalanceDisplay() {
@@ -201,24 +179,18 @@ function saveBalance() {
     updateBalanceDisplay();
 }
 
-// 5. סימולטור
 document.getElementById('run-sim-btn').addEventListener('click', () => {
     let drawsCount = parseInt(document.getElementById('sim-count').value);
-    let ticketCost = 5; 
-    let totalCost = drawsCount * ticketCost;
+    let totalCost = drawsCount * 5; 
     let totalWon = 0;
-    
     for(let i=0; i<drawsCount; i++) {
         let luck = Math.random();
         if(luck < 0.00024) totalWon += 5000; 
         else if(luck < 0.05) totalWon += 20;  
     }
-    
-    let profit = totalWon - totalCost;
-    let resultHTML = `
-        <strong>עלות כוללת של שליחת ${drawsCount} טפסים:</strong> ₪${totalCost}<br>
-        <strong>סך כל הזכיות בסימולציה:</strong> ₪${totalWon}<br>
-        <strong>רווח/הפסד נקי:</strong> <span style="color:${profit >= 0 ? 'green' : 'red'}; font-weight:bold;">₪${profit}</span>
+    document.getElementById('sim-results').innerHTML = `
+        <strong>עלות כוללת:</strong> ₪${totalCost}<br>
+        <strong>סך זכיות:</strong> ₪${totalWon}<br>
+        <strong>רווח/הפסד:</strong> <span style="color:${totalWon - totalCost >= 0 ? 'green' : 'red'};">₪${totalWon - totalCost}</span>
     `;
-    document.getElementById('sim-results').innerHTML = resultHTML;
 });
