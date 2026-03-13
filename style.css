@@ -1,282 +1,454 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>צ'אנס אנליטיקס פרו</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-</head>
-<body>
+/* =====================================================
+   CHANCE ANALYTICS PRO — Dark Casino Theme
+   ===================================================== */
 
-<!-- ══════════════ HEADER ══════════════ -->
-<header class="app-header">
-  <div class="app-logo">♠ CHANCE ANALYTICS PRO</div>
-  <div id="header-balance" class="header-balance">₪0</div>
-</header>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Heebo:wght@300;400;500;700&family=Bebas+Neue&display=swap');
 
-<!-- ══════════════ NAV ══════════════ -->
-<nav class="tabs-nav">
-  <button class="tab-btn active" data-tab="tab-dashboard">📊 דשבורד</button>
-  <button class="tab-btn" data-tab="tab-stats">🔬 סטטיסטיקה</button>
-  <button class="tab-btn" data-tab="tab-generator">🤖 מחולל</button>
-  <button class="tab-btn" data-tab="tab-ai">✨ עוזר AI</button>
-  <button class="tab-btn" data-tab="tab-simulator">📈 סימולטור</button>
-  <button class="tab-btn" data-tab="tab-bankroll">💰 תקציב</button>
-</nav>
+:root {
+  --bg-deep:    #0a0e14;
+  --bg-card:    #111720;
+  --bg-hover:   #181f2e;
+  --border:     rgba(255,255,255,0.07);
+  --border-hi:  rgba(255,255,255,0.18);
 
-<!-- ══════════════ TAB 1 — DASHBOARD ══════════════ -->
-<div id="tab-dashboard" class="tab-pane active">
+  --green:      #00e676;
+  --green-dim:  #00c85880;
+  --red:        #ff4d6d;
+  --red-dim:    #ff4d6d55;
+  --gold:       #ffc107;
+  --gold-dim:   #ffc10740;
+  --blue:       #4fc3f7;
+  --blue-dim:   #4fc3f730;
 
-  <div class="panel">
-    <div class="panel-title">
-      📦 מצב נתונים
-      <span id="data-quality-badge" class="data-quality dq-sim">טוען...</span>
-      <span id="data-count-badge" class="text-muted" style="margin-right:auto"></span>
-    </div>
-    <div id="data-status-msg" class="text-muted"></div>
-  </div>
+  --text-1:     #e8eaf0;
+  --text-2:     #8a9ab8;
+  --text-3:     #4a5568;
 
-  <div class="panel">
-    <div class="panel-title">🔥 מפת חום — תדירות הופעות</div>
-    <!-- תיקון: ♠=עלה ♣=תלתן -->
-    <table class="heatmap-table" id="heatmap-table">
-      <thead>
-        <tr>
-          <th>קלף</th>
-          <th style="color:var(--spade-col)">♠ עלה</th>
-          <th style="color:var(--heart-col)">♥ לב</th>
-          <th style="color:var(--diamond-col)">♦ יהלום</th>
-          <th style="color:var(--club-col)">♣ תלתן</th>
-        </tr>
-      </thead>
-      <tbody id="heatmap-body"></tbody>
-    </table>
-  </div>
+  --spade-col:  #b0bec5;
+  --heart-col:  #ef5350;
+  --diamond-col:#ef5350;
+  --club-col:   #b0bec5;
 
-  <div class="panel">
-    <div class="panel-title">
-      📉 גרף תדירות — 50 הגרלות אחרונות
-      <select id="chart-suit-selector" class="input-field" style="width:auto;margin-right:auto">
-        <option value="spade">♠ עלה</option>
-        <option value="heart">♥ לב</option>
-        <option value="diamond">♦ יהלום</option>
-        <option value="club">♣ תלתן</option>
-      </select>
-    </div>
-    <div class="chart-wrapper">
-      <canvas id="trend-chart"></canvas>
-    </div>
-  </div>
+  --radius:     10px;
+  --radius-lg:  16px;
+  --shadow:     0 4px 24px rgba(0,0,0,0.5);
+  --transition: all 0.2s cubic-bezier(.4,0,.2,1);
+}
 
-  <div class="panel">
-    <div class="panel-title">🕐 50 הגרלות אחרונות</div>
-    <div id="history-log" class="history-log"></div>
-  </div>
-</div>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-<!-- ══════════════ TAB 2 — STATISTICS ══════════════ -->
-<div id="tab-stats" class="tab-pane">
+html { font-size: 15px; scroll-behavior: smooth; }
 
-  <div class="panel">
-    <div class="panel-title">🧪 מבחן Chi-Square — האם הגרלה הוגנת?</div>
-    <p class="text-muted mb-8">
-      בגרלה הוגנת, כל קלף אמור להופיע בתדירות שווה (1/8 = 12.5%).
-      מבחן Chi-Square בודק חריגה מהתפלגות אחידה.
-      <strong>p &lt; 0.05</strong> מצביע על אנומליה סטטיסטית.
-    </p>
-    <div id="chi-results"></div>
-  </div>
+body {
+  font-family: 'Heebo', sans-serif;
+  background: var(--bg-deep);
+  color: var(--text-1);
+  min-height: 100vh;
+  direction: rtl;
+}
 
-  <div class="panel">
-    <div class="panel-title">🔥 ניתוח רצפים (Streaks)</div>
-    <div id="streak-grid" class="streak-grid"></div>
-  </div>
+/* ── Header ── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
 
-  <div class="panel">
-    <div class="panel-title">📊 התפלגות קלפים — כל הנתונים</div>
-    <div class="chart-wrapper" style="max-height:300px">
-      <canvas id="dist-chart"></canvas>
-    </div>
-  </div>
+.app-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.7rem;
+  letter-spacing: 2px;
+  color: var(--green);
+  display: flex; align-items: center; gap: 10px;
+}
 
-  <div class="panel">
-    <div class="panel-title">⚡ אחוז נתונים אמיתיים vs. מדומים</div>
-    <div id="data-breakdown"></div>
-  </div>
-</div>
+.header-balance {
+  background: var(--bg-hover);
+  border: 1px solid var(--green-dim);
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  color: var(--green);
+  font-family: 'DM Mono', monospace;
+}
 
-<!-- ══════════════ TAB 3 — GENERATOR ══════════════ -->
-<div id="tab-generator" class="tab-pane">
+/* ── Tabs ── */
+.tabs-nav {
+  display: flex;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  padding: 0 16px;
+  gap: 4px;
+}
 
-  <div class="warning-banner">
-    <strong>⚠️ חשוב לדעת:</strong> ניתוח תדירויות אינו מנבא הגרלות עתידיות.
-    הגרלת צ'אנס היא <strong>תהליך עצמאי</strong> — כל הגרלה בלתי תלויה בקודמות.
-    השימוש במחולל הוא לצרכי מחקר בלבד.
-  </div>
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 14px 18px;
+  white-space: nowrap;
+  transition: var(--transition);
+}
 
-  <div class="agent-panel">
-    <div class="panel-title">📊 הצעת טור — מבוסס תדירות היסטורית</div>
-    <p class="text-muted mb-8">
-      מציג את הקלפים הנפוצים ביותר ב-20 הגרלות האחרונות לכל סדרה.
-      <strong>זהו ניתוח סטטיסטי בלבד, לא ניבוי.</strong>
-    </p>
-    <div id="freq-cards" class="card-row"></div>
-    <div class="gen-buttons">
-      <button class="btn btn-primary" id="fill-freq-btn">מלא לפי תדירות</button>
-      <button class="btn btn-secondary" id="fill-random-btn">הגרלה אקראית</button>
-      <button class="btn btn-secondary" id="fill-cold-btn">קלפים "קרים" (הכי פחות הופיעו)</button>
-    </div>
-  </div>
+.tab-btn:hover { color: var(--text-1); }
+.tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
 
-  <div class="panel">
-    <div class="panel-title">🃏 טור נוכחי</div>
-    <div id="generated-cards" class="card-row" style="justify-content:flex-start"></div>
-    <div class="mt-16" id="gen-stats" class="text-muted"></div>
-  </div>
-</div>
+/* ── Tab content ── */
+.tab-pane { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
+.tab-pane.active { display: block; }
 
-<!-- ══════════════ TAB 4 — AI CHAT ══════════════ -->
-<div id="tab-ai" class="tab-pane">
+/* ── Cards / Panels ── */
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
 
-  <div class="panel" id="ai-key-panel">
-    <div class="panel-title">🔑 מפתח API — Anthropic</div>
-    <p class="text-muted mb-8">
-      כדי להשתמש בעוזר AI, הזן את מפתח ה-API שלך מ-<a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">console.anthropic.com</a>.
-      המפתח נשמר רק בדפדפן שלך (localStorage).
-    </p>
-    <div class="form-row">
-      <input type="password" id="api-key-input" class="input-field" placeholder="sk-ant-..." style="flex:1; direction:ltr;">
-      <button class="btn btn-primary" id="save-key-btn">שמור</button>
-      <button class="btn btn-danger" id="clear-key-btn">מחק</button>
-    </div>
-    <div id="api-key-status" class="text-muted mt-8"></div>
-  </div>
+.panel-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-2);
+  margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
 
-  <div class="panel">
-    <div class="panel-title">✨ עוזר AI — ניתוח חכם של נתוני צ'אנס</div>
-    <div class="chat-container">
-      <div id="chat-messages" class="chat-messages">
-        <div class="msg system">שאל אותי כל שאלה על נתוני הגרלות הצ'אנס שנטענו...</div>
-        <div class="msg system">לדוגמה: "איזה קלף מופיע הכי הרבה בסדרת לב?" / "האם ההגרלה נראית הוגנת?" / "מה ההסתברות שאקלע 3 קלפים?"</div>
-      </div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="שאל שאלה על הנתונים..." />
-        <button class="btn btn-ai" id="chat-send-btn">שלח</button>
-      </div>
-    </div>
-    <div id="quick-prompts" class="flex-row mt-8">
-      <button class="btn btn-secondary" style="font-size:0.78rem" data-prompt="סכם את הנתונים הנוכחיים — כמה הגרלות, אחוז נתונים אמיתיים, ומה בולט בהתפלגות?">סיכום נתונים</button>
-      <button class="btn btn-secondary" style="font-size:0.78rem" data-prompt="האם ניתן לזהות אנומליה או חריגה בנתונים? בצע ניתוח ביקורתי.">ניתוח אנומליות</button>
-      <button class="btn btn-secondary" style="font-size:0.78rem" data-prompt="הסבר לי כמה אפסד בממוצע אם אשחק 100 פעמים בעלות ₪5 כל פעם, בהתאם להסתברויות האמיתיות של צ'אנס.">ניתוח כלכלי</button>
-    </div>
-  </div>
-</div>
+/* ── Data quality badge ── */
+.data-quality {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-family: 'DM Mono', monospace;
+}
+.dq-real    { background: #00e67615; color: var(--green); border: 1px solid var(--green-dim); }
+.dq-partial { background: var(--gold-dim); color: var(--gold); border: 1px solid #ffc10755; }
+.dq-sim     { background: var(--red-dim); color: var(--red); border: 1px solid #ff4d6d55; }
 
-<!-- ══════════════ TAB 5 — SIMULATOR ══════════════ -->
-<div id="tab-simulator" class="tab-pane">
+/* ── Heatmap table ── */
+.heatmap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.88rem;
+}
+.heatmap-table th {
+  padding: 10px 14px;
+  color: var(--text-2);
+  font-weight: 500;
+  font-size: 0.82rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.heatmap-table td {
+  padding: 9px 14px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: var(--transition);
+}
+.heatmap-table td:first-child { color: var(--text-2); text-align: right; }
+.heatmap-table tr:hover td { background: var(--bg-hover); }
 
-  <div class="warning-banner">
-    <strong>⚠️ אזהרה:</strong> הסימולטור מציג את מציאות ההסתברויות האמיתיות של צ'אנס.
-    הצפייה ב<strong>הפסדים הצפויים</strong> מיועדת לחינוך בלבד — לא להמרצת הימור.
-  </div>
+/* ── Chi-Square panel ── */
+.chi-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.chi-suit { font-size: 1.3em; }
+.chi-stat { font-family: 'DM Mono', monospace; font-size: 0.82rem; color: var(--text-2); }
+.chi-pval { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 0.95rem; }
+.chi-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.chi-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+.chi-ok    { border-color: var(--green-dim); }
+.chi-warn  { border-color: #ffc10755; }
+.chi-alert { border-color: var(--red-dim); }
 
-  <div class="panel">
-    <div class="panel-title">⚙️ הגדרות סימולציה</div>
+/* ── Streak analysis ── */
+.streak-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.streak-item {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.streak-label { font-size: 0.78rem; color: var(--text-2); margin-bottom: 6px; }
+.streak-value { font-family: 'DM Mono', monospace; font-size: 1.5rem; font-weight: 700; }
+.streak-sub   { font-size: 0.72rem; color: var(--text-3); margin-top: 4px; }
 
-    <div class="form-row">
-      <label class="form-label">מצב:</label>
-      <select id="sim-mode" class="input-field" style="width:auto">
-        <option value="monte-carlo">Monte Carlo — הגרלות מדומות</option>
-        <option value="backtest">Backtest — מול הגרלות אמיתיות מהעבר</option>
-      </select>
-    </div>
+/* ── Card display ── */
+.card-row {
+  display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  margin-top: 14px;
+}
+.card-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  min-width: 80px;
+  gap: 6px;
+  cursor: default;
+  transition: var(--transition);
+}
+.card-chip:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+.card-suit-icon { font-size: 1.8rem; line-height: 1; }
+.card-value     { font-family: 'DM Mono', monospace; font-size: 1.3rem; font-weight: 700; }
+.card-suit-name { font-size: 0.72rem; color: var(--text-2); }
+.card-chip.red  .card-suit-icon,
+.card-chip.red  .card-value { color: var(--heart-col); }
+.card-chip.black .card-suit-icon,
+.card-chip.black .card-value { color: var(--spade-col); }
 
-    <div id="sim-count-row" class="form-row">
-      <label class="form-label">מספר הגרלות:</label>
-      <input type="range" id="sim-count-slider" min="10" max="10000" value="1000" step="10" style="flex:1">
-      <span id="sim-count-display" class="monospace" style="min-width:60px">1,000</span>
-    </div>
+/* ── Generator / AI Agent ── */
+.agent-panel {
+  background: linear-gradient(135deg, rgba(0,230,118,0.04) 0%, rgba(79,195,247,0.04) 100%);
+  border: 1px solid var(--green-dim);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  margin-bottom: 20px;
+}
 
-    <div class="form-row">
-      <label class="form-label">מחיר לפנייה (₪):</label>
-      <input type="number" id="sim-cost" class="input-field" value="5" min="1" style="width:100px">
-    </div>
+.gen-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
-    <div id="sim-strategy-row" class="form-row">
-      <label class="form-label">אסטרטגיה (Monte Carlo):</label>
-      <select id="sim-strategy" class="input-field" style="width:auto">
-        <option value="random">אקראי לחלוטין</option>
-        <option value="freq">לפי תדירות גבוהה</option>
-        <option value="cold">קלפים "קרים"</option>
-        <option value="current">הטור הנוכחי מהמחולל</option>
-      </select>
-    </div>
+/* ── AI Chat ── */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 440px;
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.msg {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.msg.user      { align-self: flex-start; background: rgba(79,195,247,0.1); border: 1px solid rgba(79,195,247,0.2); }
+.msg.assistant { align-self: flex-end; background: rgba(0,230,118,0.07); border: 1px solid var(--green-dim); }
+.msg.system    { align-self: center; font-size: 0.78rem; color: var(--text-3); font-style: italic; }
+.chat-input-row {
+  display: flex; gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.chat-input-row input {
+  flex: 1;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.9rem;
+  padding: 9px 14px;
+  direction: rtl;
+  transition: var(--transition);
+}
+.chat-input-row input:focus {
+  outline: none;
+  border-color: var(--green-dim);
+}
 
-    <div class="text-muted mt-8" style="font-size:0.8rem; padding:10px; background:var(--bg-hover); border-radius:var(--radius); border:1px solid var(--border)">
-      💡 <strong>Backtest</strong>: בחר טור במחולל → חזור לכאן → בחר Backtest → ראה כמה היית מרוויח/מפסיד לו היית משחק את הטור הזה על כל ההגרלות ההיסטוריות.
-    </div>
+/* ── Simulator ── */
+.sim-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.sim-stat {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.sim-stat-label { font-size: 0.75rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.sim-stat-value { font-family: 'DM Mono', monospace; font-size: 1.4rem; font-weight: 700; }
+.sim-stat-value.green { color: var(--green); }
+.sim-stat-value.red   { color: var(--red); }
+.sim-stat-value.gold  { color: var(--gold); }
 
-    <button class="btn btn-primary mt-16" id="run-sim-btn">▶ הרץ</button>
-  </div>
+.match-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.85rem;
+}
+.match-bar-wrap { flex: 1; background: rgba(255,255,255,0.06); height: 6px; border-radius: 3px; overflow: hidden; }
+.match-bar { height: 100%; border-radius: 3px; }
+.match-label { width: 60px; color: var(--text-2); font-family: 'DM Mono', monospace; font-size: 0.78rem; }
+.match-count { width: 50px; text-align: left; font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--text-2); }
 
-  <div id="sim-results-panel" class="panel" style="display:none">
-    <div class="panel-title">📊 תוצאות — <span id="sim-mode-label"></span></div>
+/* ── Warning banner ── */
+.warning-banner {
+  background: rgba(255,77,109,0.06);
+  border: 1px solid var(--red-dim);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 0.83rem;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+.warning-banner strong { color: var(--red); }
 
-    <div class="sim-stat-grid" id="sim-stat-grid"></div>
+/* ── Bankroll ── */
+.bankroll-big {
+  font-family: 'DM Mono', monospace;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--green);
+  text-align: center;
+  padding: 20px 0;
+}
 
-    <div class="mt-16">
-      <div class="panel-title" style="font-size:0.72rem">פירוט התאמות</div>
-      <div id="sim-match-breakdown"></div>
-    </div>
+/* ── Buttons ── */
+.btn {
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  transition: var(--transition);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:active { transform: scale(0.97); }
 
-    <div id="sim-budget-link" style="display:none; margin-top:14px; padding:12px; background:var(--bg-hover); border-radius:var(--radius); border:1px solid var(--border)"></div>
+.btn-primary  { background: var(--green); color: #0a0e14; }
+.btn-primary:hover { background: #00ff85; }
 
-    <div class="mt-16 text-muted" style="font-size:0.8rem; line-height:1.6; padding:12px; background:var(--bg-hover); border-radius:var(--radius); border:1px solid var(--border)">
-      <strong>הסתברויות תיאורטיות (אומתו ב-2M סימולציות):</strong><br>
-      0 קלפים: 58.6% | 1 קלף: 33.5% | 2 קלפים: 7.2% | 3 קלפים: 0.68% | 4 קלפים: 0.024% (1 ל-4,096)
-    </div>
-  </div>
-</div>
+.btn-secondary { background: rgba(255,255,255,0.08); color: var(--text-1); border: 1px solid var(--border); }
+.btn-secondary:hover { background: rgba(255,255,255,0.13); border-color: var(--border-hi); }
 
-<!-- ══════════════ TAB 6 — BANKROLL ══════════════ -->
-<div id="tab-bankroll" class="tab-pane">
+.btn-danger   { background: var(--red-dim); color: var(--red); border: 1px solid var(--red-dim); }
+.btn-danger:hover { background: rgba(255,77,109,0.3); }
 
-  <div class="warning-banner">
-    <strong>⚠️ משחק אחראי:</strong> קבע תקציב מקסימלי ואל תחרוג ממנו.
-    ההפסד הצפוי בצ'אנס הוא <strong>~53.8% מהסכום שהשקעת</strong> לאורך זמן.
-    אם הימור פוגע בחיי היום-יום, פנה ל<a href="tel:1700500800" style="color:var(--red)">מוקד הימור בעייתי 1700-500-800</a>.
-  </div>
+.btn-ai       { background: linear-gradient(135deg, #00e67618, #4fc3f718); color: var(--blue); border: 1px solid rgba(79,195,247,0.3); }
+.btn-ai:hover { background: linear-gradient(135deg, #00e67625, #4fc3f725); }
 
-  <div class="panel">
-    <div class="bankroll-big">₪<span id="main-balance">0</span></div>
-    <div id="bankroll-ev-warning" class="text-muted" style="text-align:center; margin-top:8px"></div>
-  </div>
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  <div class="panel">
-    <div class="panel-title">💳 הפקדה / משיכה</div>
-    <div class="form-row">
-      <label class="form-label">סכום (₪):</label>
-      <input type="number" id="deposit-amount" class="input-field" value="100" min="1" style="width:130px">
-      <button class="btn btn-primary" id="deposit-btn">+ הפקד</button>
-      <button class="btn btn-secondary" id="withdraw-btn">− משוך</button>
-      <button class="btn btn-danger" id="reset-bankroll-btn">אפס</button>
-    </div>
-  </div>
+/* ── Inputs ── */
+.input-field {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.9rem;
+  padding: 9px 14px;
+  width: 100%;
+  transition: var(--transition);
+}
+.input-field:focus {
+  outline: none;
+  border-color: rgba(0,230,118,0.4);
+}
 
-  <div class="panel">
-    <div class="panel-title">📋 יומן הימורים</div>
-    <div class="form-row">
-      <label class="form-label">עלות כרטיס (₪):</label>
-      <input type="number" id="bet-cost" class="input-field" value="5" min="1" style="width:100px">
-      <label class="form-label" style="margin-right:12px">תוצאה (₪):</label>
-      <input type="number" id="bet-win" class="input-field" value="0" min="0" style="width:100px">
-      <button class="btn btn-secondary" id="log-bet-btn">רשום</button>
-    </div>
-    <div id="bet-log" class="history-log mt-8"></div>
-  </div>
-</div>
+.form-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+.form-label { font-size: 0.82rem; color: var(--text-2); min-width: 130px; }
 
-<script src="script.js"></script>
-</body>
-</html>
+/* ── Range slider ── */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--bg-hover);
+  border-radius: 2px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--green);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ── History log ── */
+.history-log {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text-2);
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.history-log .log-row {
+  display: flex; gap: 12px; align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.log-date { color: var(--text-3); min-width: 130px; }
+.log-status-badge {
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+/* ── Chart wrapper ── */
+.chart-wrapper { position: relative; max-height: 260px; }
+
+/* ── Utility ── */
+.flex-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.mt-8  { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-8  { margin-bottom: 8px; }
+.text-muted { color: var(--text-2); font-size: 0.82rem; }
+.monospace  { font-family: 'DM Mono', monospace; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .app-header { padding: 14px 16px; }
+  .tab-pane { padding: 16px; }
+  .panel { padding: 16px; }
+  .bankroll-big { font-size: 2rem; }
+}

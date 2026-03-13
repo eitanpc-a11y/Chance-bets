@@ -1,1 +1,282 @@
-[]
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>צ'אנס אנליטיקס פרו</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="app-header">
+  <div class="app-logo">♠ CHANCE ANALYTICS PRO</div>
+  <div id="header-balance" class="header-balance">₪0</div>
+</header>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav class="tabs-nav">
+  <button class="tab-btn active" data-tab="tab-dashboard">📊 דשבורד</button>
+  <button class="tab-btn" data-tab="tab-stats">🔬 סטטיסטיקה</button>
+  <button class="tab-btn" data-tab="tab-generator">🤖 מחולל</button>
+  <button class="tab-btn" data-tab="tab-ai">✨ עוזר AI</button>
+  <button class="tab-btn" data-tab="tab-simulator">📈 סימולטור</button>
+  <button class="tab-btn" data-tab="tab-bankroll">💰 תקציב</button>
+</nav>
+
+<!-- ══════════════ TAB 1 — DASHBOARD ══════════════ -->
+<div id="tab-dashboard" class="tab-pane active">
+
+  <div class="panel">
+    <div class="panel-title">
+      📦 מצב נתונים
+      <span id="data-quality-badge" class="data-quality dq-sim">טוען...</span>
+      <span id="data-count-badge" class="text-muted" style="margin-right:auto"></span>
+    </div>
+    <div id="data-status-msg" class="text-muted"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🔥 מפת חום — תדירות הופעות</div>
+    <!-- תיקון: ♠=עלה ♣=תלתן -->
+    <table class="heatmap-table" id="heatmap-table">
+      <thead>
+        <tr>
+          <th>קלף</th>
+          <th style="color:var(--spade-col)">♠ עלה</th>
+          <th style="color:var(--heart-col)">♥ לב</th>
+          <th style="color:var(--diamond-col)">♦ יהלום</th>
+          <th style="color:var(--club-col)">♣ תלתן</th>
+        </tr>
+      </thead>
+      <tbody id="heatmap-body"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      📉 גרף תדירות — 50 הגרלות אחרונות
+      <select id="chart-suit-selector" class="input-field" style="width:auto;margin-right:auto">
+        <option value="spade">♠ עלה</option>
+        <option value="heart">♥ לב</option>
+        <option value="diamond">♦ יהלום</option>
+        <option value="club">♣ תלתן</option>
+      </select>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="trend-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🕐 50 הגרלות אחרונות</div>
+    <div id="history-log" class="history-log"></div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB 2 — STATISTICS ══════════════ -->
+<div id="tab-stats" class="tab-pane">
+
+  <div class="panel">
+    <div class="panel-title">🧪 מבחן Chi-Square — האם הגרלה הוגנת?</div>
+    <p class="text-muted mb-8">
+      בגרלה הוגנת, כל קלף אמור להופיע בתדירות שווה (1/8 = 12.5%).
+      מבחן Chi-Square בודק חריגה מהתפלגות אחידה.
+      <strong>p &lt; 0.05</strong> מצביע על אנומליה סטטיסטית.
+    </p>
+    <div id="chi-results"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🔥 ניתוח רצפים (Streaks)</div>
+    <div id="streak-grid" class="streak-grid"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">📊 התפלגות קלפים — כל הנתונים</div>
+    <div class="chart-wrapper" style="max-height:300px">
+      <canvas id="dist-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">⚡ אחוז נתונים אמיתיים vs. מדומים</div>
+    <div id="data-breakdown"></div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB 3 — GENERATOR ══════════════ -->
+<div id="tab-generator" class="tab-pane">
+
+  <div class="warning-banner">
+    <strong>⚠️ חשוב לדעת:</strong> ניתוח תדירויות אינו מנבא הגרלות עתידיות.
+    הגרלת צ'אנס היא <strong>תהליך עצמאי</strong> — כל הגרלה בלתי תלויה בקודמות.
+    השימוש במחולל הוא לצרכי מחקר בלבד.
+  </div>
+
+  <div class="agent-panel">
+    <div class="panel-title">📊 הצעת טור — מבוסס תדירות היסטורית</div>
+    <p class="text-muted mb-8">
+      מציג את הקלפים הנפוצים ביותר ב-20 הגרלות האחרונות לכל סדרה.
+      <strong>זהו ניתוח סטטיסטי בלבד, לא ניבוי.</strong>
+    </p>
+    <div id="freq-cards" class="card-row"></div>
+    <div class="gen-buttons">
+      <button class="btn btn-primary" id="fill-freq-btn">מלא לפי תדירות</button>
+      <button class="btn btn-secondary" id="fill-random-btn">הגרלה אקראית</button>
+      <button class="btn btn-secondary" id="fill-cold-btn">קלפים "קרים" (הכי פחות הופיעו)</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🃏 טור נוכחי</div>
+    <div id="generated-cards" class="card-row" style="justify-content:flex-start"></div>
+    <div class="mt-16" id="gen-stats" class="text-muted"></div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB 4 — AI CHAT ══════════════ -->
+<div id="tab-ai" class="tab-pane">
+
+  <div class="panel" id="ai-key-panel">
+    <div class="panel-title">🔑 מפתח API — Anthropic</div>
+    <p class="text-muted mb-8">
+      כדי להשתמש בעוזר AI, הזן את מפתח ה-API שלך מ-<a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">console.anthropic.com</a>.
+      המפתח נשמר רק בדפדפן שלך (localStorage).
+    </p>
+    <div class="form-row">
+      <input type="password" id="api-key-input" class="input-field" placeholder="sk-ant-..." style="flex:1; direction:ltr;">
+      <button class="btn btn-primary" id="save-key-btn">שמור</button>
+      <button class="btn btn-danger" id="clear-key-btn">מחק</button>
+    </div>
+    <div id="api-key-status" class="text-muted mt-8"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">✨ עוזר AI — ניתוח חכם של נתוני צ'אנס</div>
+    <div class="chat-container">
+      <div id="chat-messages" class="chat-messages">
+        <div class="msg system">שאל אותי כל שאלה על נתוני הגרלות הצ'אנס שנטענו...</div>
+        <div class="msg system">לדוגמה: "איזה קלף מופיע הכי הרבה בסדרת לב?" / "האם ההגרלה נראית הוגנת?" / "מה ההסתברות שאקלע 3 קלפים?"</div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="שאל שאלה על הנתונים..." />
+        <button class="btn btn-ai" id="chat-send-btn">שלח</button>
+      </div>
+    </div>
+    <div id="quick-prompts" class="flex-row mt-8">
+      <button class="btn btn-secondary" style="font-size:0.78rem" data-prompt="סכם את הנתונים הנוכחיים — כמה הגרלות, אחוז נתונים אמיתיים, ומה בולט בהתפלגות?">סיכום נתונים</button>
+      <button class="btn btn-secondary" style="font-size:0.78rem" data-prompt="האם ניתן לזהות אנומליה או חריגה בנתונים? בצע ניתוח ביקורתי.">ניתוח אנומליות</button>
+      <button class="btn btn-secondary" style="font-size:0.78rem" data-prompt="הסבר לי כמה אפסד בממוצע אם אשחק 100 פעמים בעלות ₪5 כל פעם, בהתאם להסתברויות האמיתיות של צ'אנס.">ניתוח כלכלי</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB 5 — SIMULATOR ══════════════ -->
+<div id="tab-simulator" class="tab-pane">
+
+  <div class="warning-banner">
+    <strong>⚠️ אזהרה:</strong> הסימולטור מציג את מציאות ההסתברויות האמיתיות של צ'אנס.
+    הצפייה ב<strong>הפסדים הצפויים</strong> מיועדת לחינוך בלבד — לא להמרצת הימור.
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">⚙️ הגדרות סימולציה</div>
+
+    <div class="form-row">
+      <label class="form-label">מצב:</label>
+      <select id="sim-mode" class="input-field" style="width:auto">
+        <option value="monte-carlo">Monte Carlo — הגרלות מדומות</option>
+        <option value="backtest">Backtest — מול הגרלות אמיתיות מהעבר</option>
+      </select>
+    </div>
+
+    <div id="sim-count-row" class="form-row">
+      <label class="form-label">מספר הגרלות:</label>
+      <input type="range" id="sim-count-slider" min="10" max="10000" value="1000" step="10" style="flex:1">
+      <span id="sim-count-display" class="monospace" style="min-width:60px">1,000</span>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">מחיר לפנייה (₪):</label>
+      <input type="number" id="sim-cost" class="input-field" value="5" min="1" style="width:100px">
+    </div>
+
+    <div id="sim-strategy-row" class="form-row">
+      <label class="form-label">אסטרטגיה (Monte Carlo):</label>
+      <select id="sim-strategy" class="input-field" style="width:auto">
+        <option value="random">אקראי לחלוטין</option>
+        <option value="freq">לפי תדירות גבוהה</option>
+        <option value="cold">קלפים "קרים"</option>
+        <option value="current">הטור הנוכחי מהמחולל</option>
+      </select>
+    </div>
+
+    <div class="text-muted mt-8" style="font-size:0.8rem; padding:10px; background:var(--bg-hover); border-radius:var(--radius); border:1px solid var(--border)">
+      💡 <strong>Backtest</strong>: בחר טור במחולל → חזור לכאן → בחר Backtest → ראה כמה היית מרוויח/מפסיד לו היית משחק את הטור הזה על כל ההגרלות ההיסטוריות.
+    </div>
+
+    <button class="btn btn-primary mt-16" id="run-sim-btn">▶ הרץ</button>
+  </div>
+
+  <div id="sim-results-panel" class="panel" style="display:none">
+    <div class="panel-title">📊 תוצאות — <span id="sim-mode-label"></span></div>
+
+    <div class="sim-stat-grid" id="sim-stat-grid"></div>
+
+    <div class="mt-16">
+      <div class="panel-title" style="font-size:0.72rem">פירוט התאמות</div>
+      <div id="sim-match-breakdown"></div>
+    </div>
+
+    <div id="sim-budget-link" style="display:none; margin-top:14px; padding:12px; background:var(--bg-hover); border-radius:var(--radius); border:1px solid var(--border)"></div>
+
+    <div class="mt-16 text-muted" style="font-size:0.8rem; line-height:1.6; padding:12px; background:var(--bg-hover); border-radius:var(--radius); border:1px solid var(--border)">
+      <strong>הסתברויות תיאורטיות (אומתו ב-2M סימולציות):</strong><br>
+      0 קלפים: 58.6% | 1 קלף: 33.5% | 2 קלפים: 7.2% | 3 קלפים: 0.68% | 4 קלפים: 0.024% (1 ל-4,096)
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB 6 — BANKROLL ══════════════ -->
+<div id="tab-bankroll" class="tab-pane">
+
+  <div class="warning-banner">
+    <strong>⚠️ משחק אחראי:</strong> קבע תקציב מקסימלי ואל תחרוג ממנו.
+    ההפסד הצפוי בצ'אנס הוא <strong>~53.8% מהסכום שהשקעת</strong> לאורך זמן.
+    אם הימור פוגע בחיי היום-יום, פנה ל<a href="tel:1700500800" style="color:var(--red)">מוקד הימור בעייתי 1700-500-800</a>.
+  </div>
+
+  <div class="panel">
+    <div class="bankroll-big">₪<span id="main-balance">0</span></div>
+    <div id="bankroll-ev-warning" class="text-muted" style="text-align:center; margin-top:8px"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">💳 הפקדה / משיכה</div>
+    <div class="form-row">
+      <label class="form-label">סכום (₪):</label>
+      <input type="number" id="deposit-amount" class="input-field" value="100" min="1" style="width:130px">
+      <button class="btn btn-primary" id="deposit-btn">+ הפקד</button>
+      <button class="btn btn-secondary" id="withdraw-btn">− משוך</button>
+      <button class="btn btn-danger" id="reset-bankroll-btn">אפס</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">📋 יומן הימורים</div>
+    <div class="form-row">
+      <label class="form-label">עלות כרטיס (₪):</label>
+      <input type="number" id="bet-cost" class="input-field" value="5" min="1" style="width:100px">
+      <label class="form-label" style="margin-right:12px">תוצאה (₪):</label>
+      <input type="number" id="bet-win" class="input-field" value="0" min="0" style="width:100px">
+      <button class="btn btn-secondary" id="log-bet-btn">רשום</button>
+    </div>
+    <div id="bet-log" class="history-log mt-8"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
