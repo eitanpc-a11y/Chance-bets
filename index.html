@@ -37,6 +37,51 @@
     <div id="data-status-msg" class="text-muted"></div>
   </div>
 
+  <!-- הזנת תוצאה ידנית -->
+  <div class="panel" style="border-color: rgba(10,132,255,0.2); background: linear-gradient(135deg, rgba(10,132,255,0.04), rgba(94,92,230,0.04));">
+    <div class="panel-title">✏️ הזן תוצאה אמיתית מהגרלה</div>
+    <p class="text-muted mb-8" style="font-size:0.78rem">ראית את תוצאת ההגרלה בפיס? הכנס אותה כאן — הנתון יישמר מקומית ויסומן כ"אמיתי".</p>
+    <div class="manual-input-grid">
+      <div>
+        <div class="manual-suit-label" style="color:var(--spade-col)">♠ עלה</div>
+        <select id="manual-spade" class="input-field" style="text-align:center">
+          <option value="">—</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>J</option><option>Q</option><option>K</option><option>A</option>
+        </select>
+      </div>
+      <div>
+        <div class="manual-suit-label" style="color:var(--heart-col)">♥ לב</div>
+        <select id="manual-heart" class="input-field" style="text-align:center">
+          <option value="">—</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>J</option><option>Q</option><option>K</option><option>A</option>
+        </select>
+      </div>
+      <div>
+        <div class="manual-suit-label" style="color:var(--diamond-col)">♦ יהלום</div>
+        <select id="manual-diamond" class="input-field" style="text-align:center">
+          <option value="">—</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>J</option><option>Q</option><option>K</option><option>A</option>
+        </select>
+      </div>
+      <div>
+        <div class="manual-suit-label" style="color:var(--club-col)">♣ תלתן</div>
+        <select id="manual-club" class="input-field" style="text-align:center">
+          <option value="">—</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+          <option>J</option><option>Q</option><option>K</option><option>A</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex-row mt-8">
+      <button class="btn btn-primary" id="add-manual-btn">+ הוסף הגרלה</button>
+      <span id="manual-feedback" class="text-muted"></span>
+      <button class="btn btn-secondary" style="margin-right:auto;font-size:0.72rem" id="export-btn">⬇ ייצא JSON</button>
+    </div>
+  </div>
+
   <div class="panel">
     <div class="panel-title">🔥 מפת חום — תדירות הופעות</div>
     <!-- תיקון: ♠=עלה ♣=תלתן -->

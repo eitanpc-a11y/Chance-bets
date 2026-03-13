@@ -170,6 +170,13 @@ async function loadData() {
     source = 'demo';
   }
 
+  // Merge manually entered draws (localStorage) with file draws
+  const manualDraws = loadManualDraws();
+  if (manualDraws.length) {
+    raw = [...raw, ...manualDraws];
+    console.log(`📝 נטענו ${manualDraws.length} הגרלות שהוזנו ידנית`);
+  }
+
   // אמות ונקה
   allDraws = raw.filter(d => {
     if (!d || !d.results) return false;
@@ -195,29 +202,30 @@ function updateDataQualityBadge(source) {
 
   const real = allDraws.filter(d => d.status && !d.status.includes('simulated')).length;
   const sim  = allDraws.filter(d => !d.status || d.status.includes('simulated')).length;
+  const manual = allDraws.filter(d => d.status === 'manual_real').length;
   const total = allDraws.length;
 
   countBadge.textContent = `${formatNum(total)} הגרלות`;
 
   if (source === 'demo') {
     badge.className = 'data-quality dq-sim';
-    badge.textContent = '⚠️ נתוני דמו בלבד';
-    msg.textContent = 'קובץ data.json לא נמצא. הנתונים הם סימולציה רנדומלית לצורכי תצוגה.';
+    badge.textContent = 'ממתין לנתונים';
+    msg.innerHTML = `<span style="color:var(--orange)">⚠️ data.json ריק.</span> הזן תוצאות אמיתיות ידנית בטופס למעלה, או הרץ את fetch_results.py מקומית.`;
     return;
   }
 
   if (real === 0) {
     badge.className = 'data-quality dq-sim';
-    badge.textContent = '⚠️ מדומה';
-    msg.textContent = `כל ${total} הגרלות מסומנות כ"מדומה". הסקריפר לא הצליח לשאוב נתונים אמיתיים עדיין.`;
+    badge.textContent = 'מדומה';
+    msg.innerHTML = `כל ${total} ההגרלות הן סימולציה פנימית — הסקריפר לא שאב עדיין. <strong style="color:var(--blue)">הוסף תוצאות ידנית!</strong>`;
   } else if (real === total) {
     badge.className = 'data-quality dq-real';
-    badge.textContent = '✅ נתונים אמיתיים';
-    msg.textContent = `כל ${formatNum(total)} הגרלות הן נתוני מפעל הפיס אמיתיים.`;
+    badge.textContent = '● אמיתי';
+    msg.textContent = `${formatNum(total)} הגרלות${manual ? ` (${manual} הוזנו ידנית)` : ''} — נתוני מפעל הפיס.`;
   } else {
     badge.className = 'data-quality dq-partial';
-    badge.textContent = '⚡ חלקי';
-    msg.textContent = `${formatNum(real)} אמיתיות (${pct(real,total)}%) + ${formatNum(sim)} מדומות.`;
+    badge.textContent = '◐ חלקי';
+    msg.textContent = `${formatNum(real)} אמיתיות (${pct(real,total)}%)${manual ? ` כולל ${manual} ידניות` : ''} + ${formatNum(sim)} מדומות.`;
   }
 }
 
@@ -898,8 +906,73 @@ function setupBankroll() {
 }
 
 // ──────────────────────────────────────────────────────
-// AI CHAT
+// MANUAL DATA ENTRY
 // ──────────────────────────────────────────────────────
+
+const MANUAL_KEY = 'chance_manual_draws';
+
+function loadManualDraws() {
+  try { return JSON.parse(localStorage.getItem(MANUAL_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveManualDraws(draws) {
+  localStorage.setItem(MANUAL_KEY, JSON.stringify(draws));
+}
+
+function setupManualEntry() {
+  $('add-manual-btn')?.addEventListener('click', () => {
+    const results = {};
+    let ok = true;
+    for (const s of SUITS) {
+      const val = $(`manual-${s}`)?.value;
+      if (!val || !CARDS.includes(val)) { ok = false; break; }
+      results[s] = val;
+    }
+    if (!ok) {
+      const fb = $('manual-feedback');
+      if (fb) { fb.textContent = '⚠️ בחר קלף לכל 4 סדרות'; fb.style.color = 'var(--red)'; }
+      return;
+    }
+
+    const draw = {
+      date: new Date().toLocaleString('he-IL'),
+      results,
+      status: 'manual_real',
+    };
+
+    const manuals = loadManualDraws();
+    manuals.push(draw);
+    saveManualDraws(manuals);
+
+    // Reload all data
+    allDraws.push(draw);
+    SUITS.forEach(s => counts[s][results[s]]++);
+
+    // Reset selects
+    SUITS.forEach(s => { const el = $(`manual-${s}`); if (el) el.value = ''; });
+
+    const fb = $('manual-feedback');
+    if (fb) {
+      fb.textContent = `✅ נוסף! (${SUITS.map(s => `${SUIT_META[s].symbol}${results[s]}`).join(' ')})`;
+      fb.style.color = 'var(--green)';
+      setTimeout(() => { if (fb) fb.textContent = ''; }, 3000);
+    }
+
+    updateDataQualityBadge('file');
+    renderAll();
+  });
+
+  $('export-btn')?.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(allDraws, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `chance-data-${new Date().toISOString().substring(0,10)}.json`;
+    a.click();
+  });
+}
+
+
 
 function getApiKey() { return localStorage.getItem('chance_api_key') || ''; }
 function saveApiKey(key) { localStorage.setItem('chance_api_key', key); }
@@ -1138,5 +1211,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSimulator();
   setupBankroll();
   setupAIChat();
+  setupManualEntry();
   loadData();
 });
