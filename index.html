@@ -22,7 +22,7 @@
     </nav>
 
     <div id="dashboard" class="tab-content active">
-        <h2>🔥 מפת חום ותדירויות</h2>
+        <h2>🔥 מפת חום ותדירויות (כל ההיסטוריה)</h2>
         <table id="heatmap-table">
             <thead>
                 <tr>
@@ -38,16 +38,19 @@
     </div>
 
     <div id="generator" class="tab-content">
-        <h2>🎲 מחולל קלפים וסוכן חכם</h2>
+        <h2>🎲 מחולל קלפים וסוכן חכם מתקדם</h2>
         
         <div class="agent-box">
-            <h3>🤖 המלצת הסוכן הסטטיסטי</h3>
-            <p><strong>🔥 המלצה חמה (מומנטום):</strong> <span id="agent-hot">מחשב...</span></p>
-            <p><strong>❄️ המלצה קרה (חזרה לממוצע):</strong> <span id="agent-cold">מחשב...</span></p>
-            <button id="agent-fill-btn" class="action-btn success-btn">מלא טור לפי הסוכן החם</button>
+            <h3>🤖 ניתוח אלגוריתמי מורחב</h3>
+            <p><strong>🔥 מגמת מומנטום (50 הגרלות אחרונות):</strong> <br><span id="agent-hot" style="font-size: 1.2em;">מחשב...</span></p>
+            <p><strong>⏳ מדד השהיה (מרחק מקסימלי מהופעה אחרונה):</strong> <br><span id="agent-delay" style="font-size: 1.2em;">מחשב...</span></p>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button id="agent-fill-hot-btn" class="action-btn success-btn">מלא טור מומנטום</button>
+                <button id="agent-fill-delay-btn" class="action-btn" style="background: #8e44ad;">מלא טור השהיה (קר)</button>
+            </div>
         </div>
 
-        <button id="generate-btn" class="action-btn">הגרל טור אקראי חדש</button>
+        <button id="generate-btn" class="action-btn" style="background: #7f8c8d;">הגרל טור אקראי לחלוטין</button>
         <div class="cards-display" id="generated-cards">
             </div>
     </div>
