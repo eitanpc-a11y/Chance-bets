@@ -8,22 +8,24 @@ let balance = localStorage.getItem('chance_bankroll') ? parseInt(localStorage.ge
 updateBalanceDisplay();
 
 // פונקציה למעבר בין לשוניות
-function openTab(tabId) {
+window.openTab = function(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     
     document.getElementById(tabId).classList.add('active');
     event.currentTarget.classList.add('active');
-}
+};
 
-// 1. ציור מפת החום (דשבורד)
-function generateHeatmap() {
+// אובייקט לאחסון ספירת הקלפים עבור מפת החום והסוכן
+let mockDataCounts = { 'spade': {}, 'heart': {}, 'diamond': {}, 'club': {} };
+
+// 1. ציור מפת החום ויצירת הנתונים (דשבורד)
+function generateDataAndHeatmap() {
     const tbody = document.querySelector('#heatmap-table tbody');
     tbody.innerHTML = '';
     
-    // יצירת נתונים מדומים לסטטיסטיקה
-    let counts = { 'spade': {}, 'heart': {}, 'diamond': {}, 'club': {} };
-    suits.forEach(s => cards.forEach(c => counts[s][c] = Math.floor(Math.random() * 100)));
+    // יצירת נתונים מדומים (סימולציה של היסטוריית הגרלות)
+    suits.forEach(s => cards.forEach(c => mockDataCounts[s][c] = Math.floor(Math.random() * 100)));
 
     let maxCount = 100;
     
@@ -35,7 +37,7 @@ function generateHeatmap() {
 
         suits.forEach(suit => {
             let cell = document.createElement('td');
-            let count = counts[suit][card];
+            let count = mockDataCounts[suit][card];
             cell.innerText = count;
             
             let intensity = count / maxCount;
@@ -47,9 +49,45 @@ function generateHeatmap() {
         tbody.appendChild(row);
     });
 }
-generateHeatmap();
 
-// 2. מחולל טפסים
+// 2. לוגיקת הסוכן החכם
+function updateAgentRecommendations() {
+    let hotRecommendation = {};
+    let coldRecommendation = {};
+
+    suits.forEach(suit => {
+        let maxCard = cards[0];
+        let minCard = cards[0];
+        let maxVal = -1;
+        let minVal = 999999;
+
+        // חיפוש הקלף החם והקר ביותר בהתבסס על הנתונים שנוצרו למפת החום
+        cards.forEach(card => {
+            let count = mockDataCounts[suit][card]; 
+            if (count > maxVal) { maxVal = count; maxCard = card; }
+            if (count < minVal) { minVal = count; minCard = card; }
+        });
+
+        hotRecommendation[suit] = maxCard;
+        coldRecommendation[suit] = minCard;
+    });
+
+    // הצגת ההמלצות במסך
+    let hotText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${hotRecommendation[s]} ${suitSymbols[s]}</span>`).join(' | ');
+    let coldText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${coldRecommendation[s]} ${suitSymbols[s]}</span>`).join(' | ');
+    
+    document.getElementById('agent-hot').innerHTML = hotText;
+    document.getElementById('agent-cold').innerHTML = coldText;
+
+    // שמירת ההמלצה החמה בזיכרון לשם מילוי אוטומטי
+    window.currentHotRecommendation = hotRecommendation;
+}
+
+// הפעלת הפונקציות בעליית הדף
+generateDataAndHeatmap();
+updateAgentRecommendations();
+
+// 3. מחולל טפסים אקראי
 document.getElementById('generate-btn').addEventListener('click', () => {
     const display = document.getElementById('generated-cards');
     display.innerHTML = '';
@@ -61,7 +99,19 @@ document.getElementById('generate-btn').addEventListener('click', () => {
     });
 });
 
-// 3. ניהול תקציב
+// כפתור מילוי אוטומטי לפי המלצת הסוכן
+document.getElementById('agent-fill-btn').addEventListener('click', () => {
+    const display = document.getElementById('generated-cards');
+    display.innerHTML = '';
+    
+    suits.forEach(suit => {
+        let card = window.currentHotRecommendation[suit];
+        let color = (suit === 'heart' || suit === 'diamond') ? 'red' : 'black';
+        display.innerHTML += `<span style="color:${color}; border:2px solid #27ae60; padding:10px; border-radius:5px; background: #e8f8f5;">${card} ${suitSymbols[suit]}</span>`;
+    });
+});
+
+// 4. ניהול תקציב
 document.getElementById('deposit-btn').addEventListener('click', () => {
     let amount = parseInt(document.getElementById('deposit-amount').value);
     if(amount > 0) {
@@ -80,22 +130,18 @@ function saveBalance() {
     updateBalanceDisplay();
 }
 
-// 4. סימולטור אסטרטגיות (Backtesting)
+// 5. סימולטור אסטרטגיות (Backtesting)
 document.getElementById('run-sim-btn').addEventListener('click', () => {
     let drawsCount = parseInt(document.getElementById('sim-count').value);
-    let ticketCost = 5; // נניח 5 שקלים לטופס רב-צ'אנס בסיסי
+    let ticketCost = 5; // עלות משוערת לטופס
     let totalCost = drawsCount * ticketCost;
     
-    // סימולציה פשוטה: סיכוי לזכות ב"צ'אנס 4" הוא 1 ל-4096 (8^4)
-    // נריץ סימולציה ונבדוק כמה זכיות קטנות (קלף 1) עד גדולות (4 קלפים)
     let totalWon = 0;
     
     for(let i=0; i<drawsCount; i++) {
-        // נניח שיש לנו החזר ממוצע (RTP - Return to Player) של בערך 60% במשחקי מזל
-        // זו רק הדגמה אנליטית פשוטה
         let luck = Math.random();
-        if(luck < 0.00024) totalWon += 5000; // זכייה גדולה
-        else if(luck < 0.05) totalWon += 20;  // זכייה קטנה
+        if(luck < 0.00024) totalWon += 5000; // סיכוי לזכייה גדולה
+        else if(luck < 0.05) totalWon += 20;  // סיכוי לזכייה קטנה
     }
     
     let profit = totalWon - totalCost;
