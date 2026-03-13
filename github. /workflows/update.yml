@@ -1,1 +1,37 @@
 
+name: שאיבת תוצאות צ'אנס אוטומטית
+
+on:
+  schedule:
+    # מריץ את הסקריפט כל יום בשעה 23:00 בלילה (לפי שעון שרת)
+    - cron: '0 21 * * *'
+  workflow_dispatch: # מאפשר לך להריץ את זה ידנית בלחיצת כפתור מתי שתרצה
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # נותן לרובוט הרשאה לשמור את הקובץ החדש
+
+    steps:
+      - name: משיכת קוד המקור
+        uses: actions/checkout@v3
+
+      - name: הגדרת סביבת Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: התקנת ספריות
+        run: pip install requests beautifulsoup4
+
+      - name: הרצת סקריפט משיכת הנתונים
+        run: python fetch_results.py
+
+      - name: שמירת הנתונים למאגר (Commit & Push)
+        run: |
+          git config --global user.name 'GitHub Actions Bot'
+          git config --global user.email 'actions@github.com'
+          git add data.json
+          git commit -m "עדכון אוטומטי של תוצאות צ'אנס 🤖" || echo "אין שינויים חדשים לשמור"
+          git push
