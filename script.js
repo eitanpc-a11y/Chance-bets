@@ -3,10 +3,10 @@ const suits = ['spade', 'heart', 'diamond', 'club'];
 const suitSymbols = { 'spade': '♠', 'heart': '♥', 'diamond': '♦', 'club': '♣' };
 const cards = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
-// משתנה גלובלי לאחסון הנתונים מהשרת
+// משתנים גלובליים
 let realDataCounts = { 'spade': {}, 'heart': {}, 'diamond': {}, 'club': {} };
+let historyDraws = []; // מערך שישמור את סדר ההגרלות הכרונולוגי
 
-// איפוס ספירות
 suits.forEach(s => cards.forEach(c => realDataCounts[s][c] = 0));
 
 let balance = localStorage.getItem('chance_bankroll') ? parseInt(localStorage.getItem('chance_bankroll')) : 0;
@@ -20,50 +20,56 @@ window.openTab = function(tabId) {
     event.currentTarget.classList.add('active');
 };
 
-// --- פונקציה חדשה: משיכת הנתונים האמיתיים מקובץ ה-JSON ---
+// --- משיכת נתונים ובניית היסטוריה ---
 async function loadRealData() {
     try {
         const response = await fetch('data.json');
-        if (!response.ok) throw new Error("קובץ הנתונים לא נמצא, נשתמש בנתוני גיבוי.");
+        if (!response.ok) throw new Error("קובץ הנתונים לא נמצא, נייצר נתוני הדמיה מתקדמים.");
         
-        const historyData = await response.json();
-        
-        // ספירת הקלפים מההיסטוריה
-        historyData.forEach(draw => {
-            if(draw.results) {
-                suits.forEach(suit => {
-                    let card = draw.results[suit];
-                    if(realDataCounts[suit][card] !== undefined) {
-                        realDataCounts[suit][card]++;
-                    }
-                });
-            }
-        });
-        
-        console.log("הנתונים נטענו בהצלחה!");
+        historyDraws = await response.json();
     } catch (error) {
         console.warn(error.message);
-        // גיבוי למקרה שהקובץ טרם נוצר: יצירת נתונים זמניים
-        suits.forEach(s => cards.forEach(c => realDataCounts[s][c] = Math.floor(Math.random() * 100)));
+        // יצירת סדרת נתונים מדומה שתאפשר לאלגוריתם הסטטיסטי לעבוד
+        historyDraws = [];
+        for(let i=0; i<500; i++) {
+            historyDraws.push({
+                results: {
+                    spade: cards[Math.floor(Math.random() * cards.length)],
+                    heart: cards[Math.floor(Math.random() * cards.length)],
+                    diamond: cards[Math.floor(Math.random() * cards.length)],
+                    club: cards[Math.floor(Math.random() * cards.length)]
+                }
+            });
+        }
     }
 
-    // אחרי שהנתונים נטענו, נצייר את מפת החום ונעדכן את הסוכן
+    // ספירת הנתונים עבור מפת החום הכללית
+    suits.forEach(s => cards.forEach(c => realDataCounts[s][c] = 0));
+    historyDraws.forEach(draw => {
+        if(draw.results) {
+            suits.forEach(suit => {
+                let card = draw.results[suit];
+                if(realDataCounts[suit][card] !== undefined) {
+                    realDataCounts[suit][card]++;
+                }
+            });
+        }
+    });
+
     generateHeatmapUI();
-    updateAgentRecommendations();
+    updateAdvancedAgentRecommendations();
 }
 
-// 1. ציור מפת החום על סמך נתוני האמת
+// 1. ציור מפת החום (כל הזמנים)
 function generateHeatmapUI() {
     const tbody = document.querySelector('#heatmap-table tbody');
     tbody.innerHTML = '';
     
-    // מציאת הערך המקסימלי כדי לצבוע נכון את מפת החום
     let maxCount = 0;
     suits.forEach(s => cards.forEach(c => {
         if(realDataCounts[s][c] > maxCount) maxCount = realDataCounts[s][c];
     }));
     
-    // מניעת חלוקה באפס
     if(maxCount === 0) maxCount = 1;
 
     cards.forEach(card => {
@@ -87,61 +93,93 @@ function generateHeatmapUI() {
     });
 }
 
-// 2. לוגיקת הסוכן החכם - מתבסס כעת על ההיסטוריה המלאה!
-function updateAgentRecommendations() {
+// 2. לוגיקת סוכן סטטיסטית מתקדמת
+function updateAdvancedAgentRecommendations() {
     let hotRecommendation = {};
-    let coldRecommendation = {};
+    let delayRecommendation = {};
+    let delayStatsText = {};
+
+    // חיתוך 50 ההגרלות האחרונות בלבד עבור בדיקת המומנטום
+    let recentDraws = historyDraws.slice(-50);
 
     suits.forEach(suit => {
-        let maxCard = cards[0];
-        let minCard = cards[0];
-        let maxVal = -1;
-        let minVal = 999999;
+        // --- אלגוריתם 1: מומנטום (החם ביותר ב-50 האחרונות) ---
+        let recentCounts = {};
+        cards.forEach(c => recentCounts[c] = 0);
+        
+        recentDraws.forEach(draw => {
+            if(draw.results && draw.results[suit]) {
+                recentCounts[draw.results[suit]]++;
+            }
+        });
+        
+        // מציאת הקלף עם הספירה הגבוהה ביותר בחלון הזמן
+        let hotCard = cards.reduce((a, b) => recentCounts[a] > recentCounts[b] ? a : b);
+        hotRecommendation[suit] = hotCard;
 
+        // --- אלגוריתם 2: מדד השהיה (כמה הגרלות עברו מאז שהופיע) ---
+        let delays = {};
+        cards.forEach(c => delays[c] = 0);
+        
         cards.forEach(card => {
-            let count = realDataCounts[suit][card]; 
-            if (count > maxVal) { maxVal = count; maxCard = card; }
-            if (count < minVal) { minVal = count; minCard = card; }
+            let delayCount = 0;
+            // לולאה שרצה אחורה מההגרלה האחרונה ביותר ועד הישנה ביותר
+            for (let i = historyDraws.length - 1; i >= 0; i--) {
+                if (historyDraws[i].results && historyDraws[i].results[suit] === card) {
+                    break; // מצאנו את ההופעה האחרונה, עוצרים את הספירה
+                }
+                delayCount++;
+            }
+            delays[card] = delayCount;
         });
 
-        hotRecommendation[suit] = maxCard;
-        coldRecommendation[suit] = minCard;
+        // מציאת הקלף עם ההשהיה הגדולה ביותר
+        let maxDelayCard = cards.reduce((a, b) => delays[a] > delays[b] ? a : b);
+        delayRecommendation[suit] = maxDelayCard;
+        delayStatsText[suit] = delays[maxDelayCard]; // שומר את מספר ההגרלות שעברו להצגה
     });
 
+    // הרכבת הטקסט להצגה בממשק
     let hotText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${hotRecommendation[s]} ${suitSymbols[s]}</span>`).join(' | ');
-    let coldText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${coldRecommendation[s]} ${suitSymbols[s]}</span>`).join(' | ');
+    
+    // בטקסט של ההשהיה נוסיף בסוגריים כמה הגרלות הקלף הזה נעדר
+    let delayText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${delayRecommendation[s]} ${suitSymbols[s]} <span style="font-size:0.7em; color:gray;">(${delayStatsText[s]} נעדר)</span></span>`).join(' | ');
     
     document.getElementById('agent-hot').innerHTML = hotText;
-    document.getElementById('agent-cold').innerHTML = coldText;
+    document.getElementById('agent-delay').innerHTML = delayText;
 
+    // שמירת ההמלצות בזיכרון למילוי בלחיצת כפתור
     window.currentHotRecommendation = hotRecommendation;
+    window.currentDelayRecommendation = delayRecommendation;
 }
 
 // מפעילים את הכל בעליית הדף
 loadRealData();
 
-// 3. מחולל טפסים אקראי
-document.getElementById('generate-btn').addEventListener('click', () => {
+// 3. מחולל טפסים וכפתורי מילוי אוטומטי
+function renderCards(recommendationObj, borderColor) {
     const display = document.getElementById('generated-cards');
     display.innerHTML = '';
     
     suits.forEach(suit => {
-        let randomCard = cards[Math.floor(Math.random() * cards.length)];
+        let card = recommendationObj[suit];
         let color = (suit === 'heart' || suit === 'diamond') ? 'red' : 'black';
-        display.innerHTML += `<span style="color:${color}; border:1px solid #ddd; padding:10px; border-radius:5px;">${randomCard} ${suitSymbols[suit]}</span>`;
+        display.innerHTML += `<span style="color:${color}; border:2px solid ${borderColor}; padding:10px; border-radius:5px; background: #e8f8f5;">${card} ${suitSymbols[suit]}</span>`;
     });
+}
+
+document.getElementById('agent-fill-hot-btn').addEventListener('click', () => {
+    renderCards(window.currentHotRecommendation, '#27ae60'); // ירוק למומנטום
 });
 
-// כפתור מילוי אוטומטי לפי המלצת הסוכן
-document.getElementById('agent-fill-btn').addEventListener('click', () => {
-    const display = document.getElementById('generated-cards');
-    display.innerHTML = '';
-    
-    suits.forEach(suit => {
-        let card = window.currentHotRecommendation[suit];
-        let color = (suit === 'heart' || suit === 'diamond') ? 'red' : 'black';
-        display.innerHTML += `<span style="color:${color}; border:2px solid #27ae60; padding:10px; border-radius:5px; background: #e8f8f5;">${card} ${suitSymbols[suit]}</span>`;
-    });
+document.getElementById('agent-fill-delay-btn').addEventListener('click', () => {
+    renderCards(window.currentDelayRecommendation, '#8e44ad'); // סגול להשהיה
+});
+
+document.getElementById('generate-btn').addEventListener('click', () => {
+    let randomRec = {};
+    suits.forEach(suit => randomRec[suit] = cards[Math.floor(Math.random() * cards.length)]);
+    renderCards(randomRec, '#ddd'); // אפור לאקראי
 });
 
 // 4. ניהול תקציב
