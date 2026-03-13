@@ -1,9 +1,16 @@
-name: שאיבת תוצאות צ'אנס אוטומטית (מתקדם)
+name: שאיבת תוצאות צ'אנס אוטומטית
 
 on:
   schedule:
-    - cron: '0 21 * * *'
+    # מפעל הפיס מפרסם תוצאות צ'אנס כל שעה לערך
+    # מריץ כל שעה בין 8:00 ל-23:00 (UTC = IL -3)
+    - cron: '5 5-20 * * *'
   workflow_dispatch:
+    inputs:
+      force_simulate:
+        description: 'Force simulated data (for testing)'
+        required: false
+        default: 'false'
 
 jobs:
   update-data:
@@ -12,26 +19,28 @@ jobs:
       contents: write
 
     steps:
-      - name: משיכת קוד המקור
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: הגדרת סביבת Python
-        uses: actions/setup-python@v4
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+          cache: 'pip'
 
-      - name: התקנת ספריות ודפדפן Playwright
+      - name: Install dependencies
         run: |
-          pip install playwright bs4
-          playwright install chromium
+          pip install playwright requests beautifulsoup4 lxml
+          playwright install chromium --with-deps
 
-      - name: הרצת סקריפט משיכת הנתונים האמיתיים
+      - name: Run scraper
         run: python fetch_results.py
+        timeout-minutes: 5
 
-      - name: שמירת הנתונים למאגר
+      - name: Commit & push data
         run: |
-          git config --global user.name 'GitHub Actions Bot'
-          git config --global user.email 'actions@github.com'
-          git add data.json
-          git commit -m "עדכון נתוני אמת ממשק הפיס + אנליטיקה 🤖" || echo "אין שינויים חדשים לשמור"
+          git config --global user.name  'Chance Bot 🤖'
+          git config --global user.email 'bot@chance-analytics.local'
+          git add data.json debug_pais.png || true
+          git diff --staged --quiet || git commit -m "📊 עדכון נתוני צ'אנס — $(date '+%Y-%m-%d %H:%M')"
           git push
