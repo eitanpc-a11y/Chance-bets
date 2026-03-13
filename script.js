@@ -3,11 +3,15 @@ const suits = ['spade', 'heart', 'diamond', 'club'];
 const suitSymbols = { 'spade': '♠', 'heart': '♥', 'diamond': '♦', 'club': '♣' };
 const cards = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
-// ניהול תקציב - שמירה בדפדפן (localStorage)
+// משתנה גלובלי לאחסון הנתונים מהשרת
+let realDataCounts = { 'spade': {}, 'heart': {}, 'diamond': {}, 'club': {} };
+
+// איפוס ספירות
+suits.forEach(s => cards.forEach(c => realDataCounts[s][c] = 0));
+
 let balance = localStorage.getItem('chance_bankroll') ? parseInt(localStorage.getItem('chance_bankroll')) : 0;
 updateBalanceDisplay();
 
-// פונקציה למעבר בין לשוניות
 window.openTab = function(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -16,19 +20,52 @@ window.openTab = function(tabId) {
     event.currentTarget.classList.add('active');
 };
 
-// אובייקט לאחסון ספירת הקלפים עבור מפת החום והסוכן
-let mockDataCounts = { 'spade': {}, 'heart': {}, 'diamond': {}, 'club': {} };
+// --- פונקציה חדשה: משיכת הנתונים האמיתיים מקובץ ה-JSON ---
+async function loadRealData() {
+    try {
+        const response = await fetch('data.json');
+        if (!response.ok) throw new Error("קובץ הנתונים לא נמצא, נשתמש בנתוני גיבוי.");
+        
+        const historyData = await response.json();
+        
+        // ספירת הקלפים מההיסטוריה
+        historyData.forEach(draw => {
+            if(draw.results) {
+                suits.forEach(suit => {
+                    let card = draw.results[suit];
+                    if(realDataCounts[suit][card] !== undefined) {
+                        realDataCounts[suit][card]++;
+                    }
+                });
+            }
+        });
+        
+        console.log("הנתונים נטענו בהצלחה!");
+    } catch (error) {
+        console.warn(error.message);
+        // גיבוי למקרה שהקובץ טרם נוצר: יצירת נתונים זמניים
+        suits.forEach(s => cards.forEach(c => realDataCounts[s][c] = Math.floor(Math.random() * 100)));
+    }
 
-// 1. ציור מפת החום ויצירת הנתונים (דשבורד)
-function generateDataAndHeatmap() {
+    // אחרי שהנתונים נטענו, נצייר את מפת החום ונעדכן את הסוכן
+    generateHeatmapUI();
+    updateAgentRecommendations();
+}
+
+// 1. ציור מפת החום על סמך נתוני האמת
+function generateHeatmapUI() {
     const tbody = document.querySelector('#heatmap-table tbody');
     tbody.innerHTML = '';
     
-    // יצירת נתונים מדומים (סימולציה של היסטוריית הגרלות)
-    suits.forEach(s => cards.forEach(c => mockDataCounts[s][c] = Math.floor(Math.random() * 100)));
-
-    let maxCount = 100;
+    // מציאת הערך המקסימלי כדי לצבוע נכון את מפת החום
+    let maxCount = 0;
+    suits.forEach(s => cards.forEach(c => {
+        if(realDataCounts[s][c] > maxCount) maxCount = realDataCounts[s][c];
+    }));
     
+    // מניעת חלוקה באפס
+    if(maxCount === 0) maxCount = 1;
+
     cards.forEach(card => {
         let row = document.createElement('tr');
         let cardCell = document.createElement('td');
@@ -37,7 +74,7 @@ function generateDataAndHeatmap() {
 
         suits.forEach(suit => {
             let cell = document.createElement('td');
-            let count = mockDataCounts[suit][card];
+            let count = realDataCounts[suit][card];
             cell.innerText = count;
             
             let intensity = count / maxCount;
@@ -50,7 +87,7 @@ function generateDataAndHeatmap() {
     });
 }
 
-// 2. לוגיקת הסוכן החכם
+// 2. לוגיקת הסוכן החכם - מתבסס כעת על ההיסטוריה המלאה!
 function updateAgentRecommendations() {
     let hotRecommendation = {};
     let coldRecommendation = {};
@@ -61,9 +98,8 @@ function updateAgentRecommendations() {
         let maxVal = -1;
         let minVal = 999999;
 
-        // חיפוש הקלף החם והקר ביותר בהתבסס על הנתונים שנוצרו למפת החום
         cards.forEach(card => {
-            let count = mockDataCounts[suit][card]; 
+            let count = realDataCounts[suit][card]; 
             if (count > maxVal) { maxVal = count; maxCard = card; }
             if (count < minVal) { minVal = count; minCard = card; }
         });
@@ -72,20 +108,17 @@ function updateAgentRecommendations() {
         coldRecommendation[suit] = minCard;
     });
 
-    // הצגת ההמלצות במסך
     let hotText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${hotRecommendation[s]} ${suitSymbols[s]}</span>`).join(' | ');
     let coldText = suits.map(s => `<span style="color:${(s==='heart'||s==='diamond')?'red':'black'}">${coldRecommendation[s]} ${suitSymbols[s]}</span>`).join(' | ');
     
     document.getElementById('agent-hot').innerHTML = hotText;
     document.getElementById('agent-cold').innerHTML = coldText;
 
-    // שמירת ההמלצה החמה בזיכרון לשם מילוי אוטומטי
     window.currentHotRecommendation = hotRecommendation;
 }
 
-// הפעלת הפונקציות בעליית הדף
-generateDataAndHeatmap();
-updateAgentRecommendations();
+// מפעילים את הכל בעליית הדף
+loadRealData();
 
 // 3. מחולל טפסים אקראי
 document.getElementById('generate-btn').addEventListener('click', () => {
@@ -130,18 +163,17 @@ function saveBalance() {
     updateBalanceDisplay();
 }
 
-// 5. סימולטור אסטרטגיות (Backtesting)
+// 5. סימולטור
 document.getElementById('run-sim-btn').addEventListener('click', () => {
     let drawsCount = parseInt(document.getElementById('sim-count').value);
-    let ticketCost = 5; // עלות משוערת לטופס
+    let ticketCost = 5; 
     let totalCost = drawsCount * ticketCost;
-    
     let totalWon = 0;
     
     for(let i=0; i<drawsCount; i++) {
         let luck = Math.random();
-        if(luck < 0.00024) totalWon += 5000; // סיכוי לזכייה גדולה
-        else if(luck < 0.05) totalWon += 20;  // סיכוי לזכייה קטנה
+        if(luck < 0.00024) totalWon += 5000; 
+        else if(luck < 0.05) totalWon += 20;  
     }
     
     let profit = totalWon - totalCost;
@@ -150,6 +182,5 @@ document.getElementById('run-sim-btn').addEventListener('click', () => {
         <strong>סך כל הזכיות בסימולציה:</strong> ₪${totalWon}<br>
         <strong>רווח/הפסד נקי:</strong> <span style="color:${profit >= 0 ? 'green' : 'red'}; font-weight:bold;">₪${profit}</span>
     `;
-    
     document.getElementById('sim-results').innerHTML = resultHTML;
 });
