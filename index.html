@@ -3,72 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת חכמה לניתוח צ'אנס</title>
+    <title>מערכת ניתוח צ'אנס פרו</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>🃏 מערכת ניתוח ואסטרטגיה - צ'אנס</h1>
+        <h1>🃏 מערכת ניתוח צ'אנס (מסחר והסתברויות)</h1>
         <div class="bankroll-display">תקציב נוכחי: ₪<span id="header-balance">0</span></div>
     </header>
 
     <nav class="tabs">
-        <button class="tab-btn active" onclick="openTab('dashboard')">📊 דשבורד מפות חום</button>
-        <button class="tab-btn" onclick="openTab('generator')">🎲 מחולל וסוכן חכם</button>
-        <button class="tab-btn" onclick="openTab('simulator')">📈 סימולטור אסטרטגיות</button>
-        <button class="tab-btn" onclick="openTab('bankroll')">💰 ניהול תקציב</button>
+        <button class="tab-btn active" onclick="openTab('dashboard')">📊 דשבורד וגרפים</button>
+        <button class="tab-btn" onclick="openTab('generator')">🤖 סוכן ואלגו-טריידינג</button>
+        <button class="tab-btn" onclick="openTab('simulator')">📈 בקטסטינג (סימולטור)</button>
+        <button class="tab-btn" onclick="openTab('bankroll')">💰 ניהול סיכונים</button>
     </nav>
 
     <div id="dashboard" class="tab-content active">
-        <h2>🔥 מפת חום ותדירויות (כל ההיסטוריה)</h2>
+        <h2>🔥 מפת חום ותדירויות</h2>
         <table id="heatmap-table">
             <thead>
-                <tr>
-                    <th>קלף</th>
-                    <th>♠ תלתן</th>
-                    <th>♥ לב</th>
-                    <th>♦ יהלום</th>
-                    <th>♣ עלה</th>
-                </tr>
+                <tr><th>קלף</th><th>♠ תלתן</th><th>♥ לב</th><th>♦ יהלום</th><th>♣ עלה</th></tr>
             </thead>
             <tbody></tbody>
         </table>
+        
+        <h2 style="margin-top: 30px;">📉 ניתוח תנודתיות (גרף אינטראקטיבי)</h2>
+        <p>בחר סדרה כדי לראות את תדירות ההופעות ב-50 ההגרלות האחרונות:</p>
+        <select id="chart-suit-selector" style="padding: 5px; font-size: 1.1em; margin-bottom: 10px;">
+            <option value="heart">♥ לב</option>
+            <option value="spade">♠ תלתן</option>
+            <option value="diamond">♦ יהלום</option>
+            <option value="club">♣ עלה</option>
+        </select>
+        <canvas id="trendChart" width="400" height="200"></canvas>
     </div>
 
     <div id="generator" class="tab-content">
-        <h2>🎲 מחולל קלפים וסוכן חכם מתקדם</h2>
+        <h2>🤖 סוכן אנליטי - אינדיקטורים טכניים</h2>
         
         <div class="agent-box">
-            <h3>🤖 ניתוח אלגוריתמי מורחב</h3>
-            <p><strong>🔥 מגמת מומנטום (50 הגרלות אחרונות):</strong> <br><span id="agent-hot" style="font-size: 1.2em;">מחשב...</span></p>
-            <p><strong>⏳ מדד השהיה (מרחק מקסימלי מהופעה אחרונה):</strong> <br><span id="agent-delay" style="font-size: 1.2em;">מחשב...</span></p>
+            <h3>ניתוח אלגוריתמי מבוסס מומנטום שוק</h3>
+            <p><strong>🔥 מגמת עלייה (ממוצע נע קצר > ארוך):</strong> <br><span id="agent-trend" style="font-size: 1.2em;">מחשב...</span></p>
+            <p><strong>⚖️ חריגת RSI (מכירת יתר - Overbought):</strong> <br><span id="agent-rsi" style="font-size: 1.2em; color: #c0392b;">מחשב...</span></p>
             <div style="margin-top: 15px; display: flex; gap: 10px;">
-                <button id="agent-fill-hot-btn" class="action-btn success-btn">מלא טור מומנטום</button>
-                <button id="agent-fill-delay-btn" class="action-btn" style="background: #8e44ad;">מלא טור השהיה (קר)</button>
+                <button id="agent-fill-trend-btn" class="action-btn success-btn">מלא טור לפי מגמת עלייה</button>
             </div>
         </div>
 
         <button id="generate-btn" class="action-btn" style="background: #7f8c8d;">הגרל טור אקראי לחלוטין</button>
-        <div class="cards-display" id="generated-cards">
-            </div>
+        <div class="cards-display" id="generated-cards"></div>
     </div>
 
     <div id="simulator" class="tab-content">
         <h2>📈 סימולטור (Backtesting)</h2>
-        <p>בדוק מה היה קורה אם היית שולח טופס אקראי של "צ'אנס 4" ברצף של הגרלות.</p>
         <div class="input-group">
             <label>מספר הגרלות לסימולציה:</label>
             <input type="number" id="sim-count" value="100" min="1">
             <button id="run-sim-btn" class="action-btn">הרץ סימולטור</button>
         </div>
-        <div class="sim-results" id="sim-results">
-            </div>
+        <div class="sim-results" id="sim-results"></div>
     </div>
 
     <div id="bankroll" class="tab-content">
-        <h2>💰 ניהול Bankroll</h2>
+        <h2>💰 ניהול Bankroll (סיכונים)</h2>
         <div class="input-group">
             <label>הפקד סכום לקופה (₪):</label>
             <input type="number" id="deposit-amount" value="100" min="1">
